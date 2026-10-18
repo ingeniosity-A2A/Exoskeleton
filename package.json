@@ -1,0 +1,7 @@
+{
+  "name": "exoskeleton-tooling",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@12.10.0",
+  "engines": { "node": ">=22" }
+}
