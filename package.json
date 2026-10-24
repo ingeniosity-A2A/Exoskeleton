@@ -2,6 +2,14 @@
   "name": "exoskeleton-tooling",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@12.10.0",
-  "engines": { "node": ">=22" }
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "benchmark:validate": "node scripts/benchmark-gate.mjs validate",
+    "benchmark:gate": "node scripts/benchmark-gate.mjs gate",
+    "test": "node --test"
+  }
 }
