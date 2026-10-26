@@ -29,3 +29,7 @@ export function describe(): string {
     "Operates in place under identity grants.",
   ].join(" ");
 }
+
+export * from "./intake.js";
+export * from "./curator.js";
+export * from "./grants.js";
