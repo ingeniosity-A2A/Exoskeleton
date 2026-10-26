@@ -1,0 +1,11 @@
+{
+  "name": "@exoskeleton/librarian",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "REV.IKE headless Librarian agent",
+  "main": "src/index.ts",
+  "scripts": {
+    "check": "echo \"librarian package scaffold — no build yet\""
+  }
+}

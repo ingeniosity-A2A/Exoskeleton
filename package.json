@@ -1,7 +1,13 @@
 {
-  "name": "exoskeleton-tooling",
+  "name": "exoskeleton",
   "version": "0.1.0",
   "private": true,
+  "description": "Long-term memory chassis and REV.IKE Librarian substrate",
   "packageManager": "pnpm@12.10.0",
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "pnpm -r run check"
+  }
 }

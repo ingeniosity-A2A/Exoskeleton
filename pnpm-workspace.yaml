@@ -1,2 +1,4 @@
-# Add package globs here only when real JS/TS packages exist.
-packages: []
+# Packages are added only after ownership review.
+# See docs/PNPM_WORKSPACE_POLICY.md.
+packages:
+  - 'packages/*'
