@@ -1,56 +1,39 @@
 # Exoskeleton
 
-**Long-term memory chassis and Librarian substrate for Ava-007.**
+**Substrate chassis for Ava-007.**
 
-This repository owns Layer 1b of the Twin-Engine DuckDB State Fabric and the headless Librarian agent (REV.IKE).
+Ava-007 has a DuckDB. Exoskeleton has a DuckDB. Exoskeleton holds the **Wasm** surface because of the Rust substrate. The **server** is created by the requirements between the two instances.
+
+## Dual-instance fabric
 
 ```
-AVA-007 TWIN-ENGINE DUCKDB STATE FABRIC
-
-Layer 1a  In-process short-term memory (DuckDB Wasm isolate)
-          Owned by the cognitive runtime — not this repository
-
-Layer 1b  Core chassis long-term memory (DuckDB Server / DuckLake)
-          Owned here — global columnar ledger, bitpacked Parquet,
-          MVCC WAL, TurboVecQuant materialization
-
-Layer 4   Presentation plane (GPU uniform blocks / PBO)
-          Consumes zero-copy streams produced by this chassis
+Ava-007 DuckDB  ←→  Exoskeleton DuckDB (Wasm + server path)
+                         │
+                         ▼
+                   REV.IKE (intake / curation functions)
 ```
-
-## Status
-
-Bootstrap → Foundation.  
-Only claims backed by recorded command output in `docs/VALIDATION.md` are made.
 
 ## What this repository owns
 
 | Owns | Does not own |
 |------|--------------|
-| Layer 1b long-term memory (DuckDB Server / DuckLake) | Layer 1a short-term Wasm isolate |
-| REV.IKE Librarian (headless, identity-aware) | Cognitive reasoning / intellect |
-| Zero-copy streaming intake and materialization | GPU presentation shaders |
-| Transition-law schema (`atomic_tweens`, codebooks) | Device / modem / browser stacks |
+| Exoskeleton DuckDB (Wasm via Rust substrate) | Ava-007 cognitive DuckDB instance |
+| Chassis schema, transition commit, skill ledger tables | Cognitive reasoning |
+| REV.IKE task functions (intake, curate, grant-gated serve) | Provider API keys |
+| pnpm workspace + catalog for substrate packages | Omnibus app shell / RSC pages |
 
-## REV.IKE — The Librarian
+## REV.IKE
 
-REV.IKE is the headless Librarian agent.  
-He curates the long-term memory chassis, operates in place, and follows Tailscale/Aperture identity principles:
+REV.IKE keeps his name. Librarian describes his task functions only.
 
-- No shared API keys
-- Operates on data where it lives
-- Identity flows from the tailnet
-- Ready for Aperture gateway and MCP connectors
-
-See `packages/librarian/` and `docs/REV_IKE_LIBRARIAN.md`.
+See `docs/REV_IKE.md`.
 
 ## Package management
 
-- **pnpm only** (pinned in `package.json`)
-- Workspace declared in `pnpm-workspace.yaml`
-- Dependency update path documented in `docs/PNPM_WORKSPACE_POLICY.md`
-- Lockfile is the reproducibility contract
+- **pnpm only**
+- Catalog is the single source of truth for shared versions
+- Both `@duckdb/duckdb-wasm` and `duckdb` are cataloged (dual-engine)
 
 ## Completion tracking
 
-See `COMPLETION_CHECKLIST.md` for remaining work required to bring this repository to production readiness.
+See `COMPLETION_CHECKLIST.md`.

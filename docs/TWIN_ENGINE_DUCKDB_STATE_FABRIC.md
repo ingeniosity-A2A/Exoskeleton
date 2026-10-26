@@ -1,85 +1,49 @@
 # Twin-Engine DuckDB State Fabric
 
 **Status:** Canonical  
-**Repository authority:** Exoskeleton owns Layer 1b
+**Topology (locked):**
+
+- **Ava-007** has a DuckDB instance (cognitive side).
+- **Exoskeleton** has a DuckDB instance; **Wasm** lives here because of the Rust substrate.
+- The **server** is created by the requirements between Ava-007 and Exoskeleton — not a third standalone product.
 
 ## Topology
 
 ```
 [ Cognitive plugins / telemetry ]
-              │  high-frequency event streams
+              │
               ▼
-Layer 1a   In-process short-term memory (DuckDB Wasm isolate)
-           Vectorized scratchpad, radix-partitioned hash builds,
-           zero-copy Apache Arrow record batches
-              │  asynchronous pipeline / Quack remote protocol
+Ava-007 DuckDB          ← cognitive-side instance
+              │
+              │  requirements / attach / materialization contract
               ▼
-Layer 1b   Core chassis long-term memory (DuckDB Server / DuckLake)
-           Global columnar ledger, bitpacked Parquet footers,
-           MVCC WAL, background zero-copy materialization of
-           TurboVecQuant buffers
-              │  direct hardware texture / buffer bindings
+Exoskeleton DuckDB      ← substrate-side instance
+  • Wasm isolate (Rust substrate)
+  • Server / DuckLake path for long-term ledger
+  • Schema: molecules, atomic_tweens, codebooks, skill ledger
+              │
               ▼
-Layer 4    Presentation plane (GPU uniform blocks / PBO)
-           Zero CPU math loop; GPU-side trajectory evaluation
+Presentation / GPU consumers (zero-copy columnar handoff)
 ```
 
-## Layer 1b Responsibilities (this repository)
+## Exoskeleton responsibilities
 
-- Persistent storage of transition laws, not static snapshots
-- Schema for molecules, atomic tweens, and quantized codebooks
-- Optimistic concurrency with latest-wins resolution on the temporal axis
-- Materialization of compressed transition buffers for downstream consumers
-- Remote attachment surface so short-term isolates can query without copying
+- Wasm surface (Rust substrate)
+- Long-term schema and MVCC transition commit path
+- Skill execution ledger tables + WAL cursor
+- REV.IKE intake and curation functions over this chassis
+- Remote attach surface so Ava-007 can query without copying
 
-## Core Tables (target)
+## Core tables
 
-```sql
--- Master temporal container
-CREATE TABLE research_molecules (
-    molecule_id       TEXT PRIMARY KEY,
-    identity_did      TEXT NOT NULL,
-    total_duration_ms INTEGER DEFAULT 0,
-    created_at        INTEGER DEFAULT (unixepoch())
-);
+See `packages/memory-chassis/src/schema.sql`.
 
--- State-transition edge (doubly-linked temporal node)
-CREATE TABLE atomic_tweens (
-    tween_id        TEXT PRIMARY KEY,
-    molecule_id     TEXT NOT NULL,
-    target_property TEXT NOT NULL,
-    start_value     REAL NOT NULL,
-    end_value       REAL NOT NULL,
-    start_time_ms   INTEGER NOT NULL,
-    duration_ms     INTEGER NOT NULL,
-    easing_code_id  INTEGER NOT NULL,
-    prev_tween_id   TEXT UNIQUE,
-    next_tween_id   TEXT UNIQUE,
-    FOREIGN KEY (molecule_id) REFERENCES research_molecules(molecule_id)
-);
+Generation-scoped timeline reads use `atomic_tweens.orchestrator_generation_id`.
 
-CREATE INDEX idx_temporal_axis
-    ON atomic_tweens(molecule_id, start_time_ms);
-
--- Quantized easing / wavefunction codebooks
-CREATE TABLE turboquant_codebooks (
-    codebook_id     INTEGER PRIMARY KEY,
-    curve_name      TEXT UNIQUE,
-    quantized_levels BLOB NOT NULL,
-    orthogonal_seed INTEGER NOT NULL
-);
-```
-
-## Design Invariants
+## Design invariants
 
 1. Absolute cognitive state is never stored as a static snapshot.
 2. Only quantized temporal transition laws are persisted.
-3. Dequantization is deferred until the moment of observation (lazy).
-4. Short-term and long-term engines share the same analytical model; they differ only in lifetime and location.
+3. Dequantization is deferred until observation.
+4. Ava-007 and Exoskeleton each hold an instance; the server path is their joint product.
 5. Presentation consumers receive columnar buffers, never row-iterated objects.
-
-## Non-Goals
-
-- This repository does not host the Wasm short-term isolate.
-- This repository does not own GPU shaders or the presentation loop.
-- This repository does not perform cognitive reasoning.

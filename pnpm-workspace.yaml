@@ -2,3 +2,16 @@
 # See docs/PNPM_WORKSPACE_POLICY.md.
 packages:
   - 'packages/*'
+
+# Single source of truth for shared dependency versions.
+# External deps use semver ranges (not workspace:).
+# Dual-engine plane needs both Wasm isolate and native/server path.
+catalog:
+  '@duckdb/duckdb-wasm': '^1.29.0'   # Exoskeleton — Rust substrate Wasm isolate
+  duckdb: '^1.1.3'                   # Server / native path (Ava-007 ↔ Exoskeleton)
+  zod: '^3.23.8'
+  protobufjs: '^7.4.0'
+
+catalogs:
+  legacy-modem:
+    protobufjs: '^6.11.3'            # deliberate locked exception
