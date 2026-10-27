@@ -4,36 +4,23 @@
 
 ## Implemented on main
 
-- [x] schema_20 + Quack triggers/outbox/apply
-- [x] CognitiveState, TemporalSubstrate (rate Mc), TwinEngineMatrix
-- [x] Layer 0 mailbox v2 (seqlock, no UAF)
-- [x] mailbox_ingest (UINT4 header + publish/snapshot)
-- [x] arrow_ingest.ingestMailboxSnapshot
-- [x] Discrepancy ledger + critical review findings closed in docs
-- [x] VECTOR_CORE.md turbovec seam
+- [x] schema_20 (incl. skill_rubrics + rubric ledger columns)
+- [x] CognitiveState / TemporalSubstrate / TwinEngineMatrix / Quack / arrow_ingest
+- [x] Layer 0 mailbox v2 + mailbox_ingest + napi_bridge C ABI
+- [x] PrismaCoder rubric_engine (evalScore, gateRoute, informativeness)
+- [x] REV.IKE curator (createMolecule, purge, registerRubric, grants)
+- [x] VALIDATION.md measured-vs-reported dock
 
-## Missing to complete Exoskeleton
+## Still missing (runtime / evidence)
 
-### Runtime / migration
-- [ ] DuckDB 2.0 both engines; apply schema_20; migrate pre-2.0
-- [ ] Quack HTTP + kill/resync dual-engine test
+- [ ] DuckDB 2.0 install + schema_20 apply both engines + migrate
+- [ ] `cargo test` substrate-native on CI/host + AArch64
+- [ ] napi/Wasm package wiring ava_mailbox_* into JS Omnibus
+- [ ] turbovec crate pin + encode → publish_packed_block
+- [ ] Quack HTTP serve on 1b + kill/resync test [M]
 - [ ] pnpm-lock under catalog 2.0
-
-### Native / FFI
-- [ ] `cargo test -p exoskeleton-substrate-native` on host + AArch64
-- [ ] napi/Wasm export: snapshot_for_ingest → JS MailboxSnapshot
-- [ ] Pin turbovec git dep; wire encode → publish_packed_block
-- [ ] Measured compression / distance claims → VALIDATION.md
-
-### REV.IKE
-- [ ] Curator on schema_20
-- [ ] Tailscale/Aperture identity + grants
-
-### Validation
-- [ ] End-to-end: Layer 0 publish → ingest → outbox → apply watermark
-- [ ] C2 sweep, shader_decode_ms, index-scale → trace.jsonl
-- [ ] docs/VALIDATION.md dated evidence
-
-### Omnibus / Ava-007
-- [ ] Skill-ledger schema_20 types
-- [ ] Cognitive DuckDB attach E2E
+- [ ] Tailscale/Aperture real subject injection (grants code ready)
+- [ ] E2E: publish → ingest → outbox → apply [M]
+- [ ] Rubric vs holistic A/B on live traces [M]
+- [ ] Omnibus skill-ledger writes rubric columns
+- [ ] Ava-007 cognitive DuckDB attach [M]

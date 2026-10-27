@@ -1,6 +1,5 @@
 -- ava-007 schema, DuckDB 2.0.0 LTS "Cinnamon Teal"
--- Migration gate: both engines (Wasm isolate + server) on 2.0 BEFORE first write.
--- Pre-2.0 binaries cannot read 2.0 storage. One-way format.
+-- Migration gate: both engines on 2.0 BEFORE first write.
 
 BEGIN TRANSACTION;
 
@@ -57,6 +56,15 @@ CREATE TABLE IF NOT EXISTS skill_registry (
   description   TEXT DEFAULT ''
 );
 
+-- PrismaCoder rubric definitions (filter + reward)
+CREATE TABLE IF NOT EXISTS skill_rubrics (
+  rubric_id     TEXT PRIMARY KEY,
+  capability    TEXT,
+  difficulty    TEXT NOT NULL CHECK (difficulty IN ('low','medium','high')),
+  rubric_json   VARIANT NOT NULL,
+  created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS embedded_skill_execution_ledger (
   transaction_id             TEXT PRIMARY KEY,
   capability_name            TEXT NOT NULL,
@@ -65,6 +73,10 @@ CREATE TABLE IF NOT EXISTS embedded_skill_execution_ledger (
   output_vector_payload      BLOB NOT NULL,
   execution_duration_ms      DOUBLE NOT NULL,
   eval_score                 DOUBLE NOT NULL CHECK (eval_score BETWEEN 0 AND 1),
+  rubric_id                  TEXT,
+  s_code                     DOUBLE,
+  s_vision                   DOUBLE,
+  gatekeeper_pass            BOOLEAN NOT NULL DEFAULT true,
   created_at                 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_skill_execution_metrics
@@ -101,8 +113,6 @@ CREATE TABLE IF NOT EXISTS embedded_skill_wal_cursor (
   last_rowid    BIGINT NOT NULL DEFAULT 0,
   updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Law of Overwrite as schema law: every atomic_tweens mutation replicates to outbox.
 
 CREATE TRIGGER tg_outbox_insert AFTER INSERT ON atomic_tweens
 BEGIN
