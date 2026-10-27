@@ -1,36 +1,28 @@
 # Layer 0 — SharedVectorMailbox
 
-**Status:** Implemented (v2 sound kernel)  
-**Path:** `packages/substrate-native/src/memory_plane.rs`
+**Status:** v2 sound kernel + mailbox→DuckDB binding  
+**Paths:**
+- `packages/substrate-native/src/memory_plane.rs`
+- `packages/substrate-native/src/mailbox_ingest.rs`
+
+## Critical review — resolved
+
+| Finding | Resolution |
+|---------|------------|
+| UAF via post-swap free | Fixed ring; slots never freed |
+| Torn (ptr, gen) | Generation in slot header; seqlock publishes as one unit |
+| Bare pointer API | `acquire_snapshot_copy` + unsafe raw with revalidation contract |
+| Wait-free claim | Corrected to **lock-free**; `is_lock_free` assert in `init` |
+| Processes vs threads | Scope = threads in one address space; cross-process = /dev/shm |
+| BF16 size | 768×2 = **1,536 B** (not 6,144) |
 
 ## Soundness rules
 
-1. Slots are **never freed** — fixed ring, recycle by generation (prevents UAF).
-2. `(payload, generation)` published as one unit via **seqlock** on the slot.
-3. **Single publisher** thread (ingestion worker); debug assert enforces.
-4. Readers **copy under seqlock**; torn reads retry, never delivered.
+1. Slots never freed — generation ring recycle  
+2. (payload, generation) via seqlock  
+3. Single publisher (debug assert)  
+4. Readers copy under validated seqlock bracket  
 
-## Scope
+## Binding
 
-- Coordinates **threads in one address space** (`std::sync::atomic`).
-- Cross-process: use existing `/dev/shm` ring — not this module.
-- Progress guarantee: **lock-free** (not wait-free). Runtime `is_lock_free` assert in `init()`.
-
-## Memory model
-
-- Publisher: seqlock write section + `active.store(..., Release)`.
-- Reader: `Relaxed` load of active + `fence(Acquire)` (C++20 [atomics.fences] synchronizes-with Release).
-- Reference: https://doc.rust-lang.org/std/sync/atomic/
-
-## Compression ladder (corrected)
-
-| Format | 768-dim size |
-|--------|-----------------|
-| 4-bit pack | 384 B |
-| BF16 | 1,536 B |
-| f32 | 3,072 B |
-| f64 | 6,144 B |
-
-## Next integration
-
-Wasm/Rust → DuckDB Arrow binding: mailbox payload stream → `arrow_ingest` → `turboquant_blocks` → triggers → Quack outbox. Prefer this over presentation bindings for correctness closure.
+`publish_packed_block` / `snapshot_for_ingest` carry `dim` + `bit_width` in a 4-byte header so Arrow/DuckDB materialization does not guess layout.

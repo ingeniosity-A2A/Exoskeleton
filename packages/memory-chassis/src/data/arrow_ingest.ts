@@ -10,10 +10,41 @@ export interface ArenaView {
 
 declare function ava_codes_view(arena: number): ArenaView;
 
+export interface MailboxSnapshot {
+  /** Generation watermark from Layer 0 seqlock */
+  generation: number;
+  dim: number;
+  bitWidth: number;
+  /** Raw packed codes (header already stripped by Rust snapshot_for_ingest) */
+  codes: Uint8Array;
+}
+
 /**
- * Arena values buffer IS the Arrow values buffer.
- * Copies exactly once into DuckDB columnar blocks.
- * Query and GPU consumers of the arena stay zero-copy.
+ * Layer 0 → DuckDB: one materialization copy of a generation-consistent
+ * mailbox snapshot into turboquant_blocks.
+ */
+export async function ingestMailboxSnapshot(
+  conn: AsyncDuckDBConnection,
+  snapshot: MailboxSnapshot,
+  moleculeId: string | null,
+  blockId: number,
+): Promise<void> {
+  if (snapshot.bitWidth < 2 || snapshot.bitWidth > 4) {
+    throw new Error(`bitWidth out of range: ${snapshot.bitWidth}`);
+  }
+  const hex = Array.from(snapshot.codes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  const mol = moleculeId ? `'${moleculeId.replace(/'/g, "''")}'` : 'NULL';
+  await conn.query(
+    `INSERT INTO turboquant_blocks (block_id, molecule_id, dim, bit_width, codes)
+     VALUES (${blockId}, ${mol}, ${snapshot.dim}, ${snapshot.bitWidth}, X'${hex}')`,
+  );
+}
+
+/**
+ * Arena FFI path (Wasm linear memory). Prefer ingestMailboxSnapshot when
+ * data already passed through Layer 0 seqlock validation.
  */
 export async function ingestArenaBlocks(
   conn: AsyncDuckDBConnection,
@@ -33,13 +64,16 @@ export async function ingestArenaBlocks(
 
   for (let i = 0; i < count; i++) {
     const slice = bytes.subarray(i * itemBytes, (i + 1) * itemBytes);
-    const hex = Array.from(slice)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-    await conn.query(
-      `INSERT INTO turboquant_blocks (block_id, molecule_id, dim, bit_width, codes)
-       VALUES (${i}, ${moleculeId ? `'${moleculeId.replace(/'/g, "''")}'` : 'NULL'},
-               ${resolvedDim}, ${resolvedBits}, X'${hex}')`,
+    await ingestMailboxSnapshot(
+      conn,
+      {
+        generation: 0,
+        dim: resolvedDim,
+        bitWidth: resolvedBits,
+        codes: slice,
+      },
+      moleculeId,
+      i,
     );
   }
   return count;
