@@ -1,0 +1,21 @@
+[package]
+name = "exoskeleton-substrate-native"
+version = "0.2.0"
+edition = "2021"
+license = "MIT"
+description = "Layer 0 lock-free SharedVectorMailbox for Ava-007 / Exoskeleton"
+
+[lib]
+name = "exoskeleton_substrate_native"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# turbovec: https://github.com/RyanCodrai/turbovec — integrate when FFI surface is pinned
+# turbovec = { git = "https://github.com/RyanCodrai/turbovec" }
+
+[dev-dependencies]
+
+[profile.release]
+lto = true
+codegen-units = 1

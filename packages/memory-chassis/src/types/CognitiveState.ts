@@ -1,15 +1,27 @@
+/**
+ * Real-time state manifold — discrepancy-aligned.
+ * Momentum is a rate variable Mc = |dS|/dt, not a binary activity flag.
+ */
+
 export interface AvaCognitiveState {
+  /** Emotional valence: -1.0 (frustrated) .. 1.0 (delighted) */
   valence: number;
+  /** Urgency: 0.0 (idle) .. 1.0 (critical) */
   urgency: number;
+  /** Cognitive momentum: true velocity of state change (rate), decays to 0 at rest */
   momentum: number;
+  /** Autonomous core routing target */
   routingTarget: 'standard' | 'de-escalation' | 'drone-radar';
 }
 
 export interface TweenAtom {
   targetState: Partial<AvaCognitiveState>;
+  /** Easing wavefunction name (e.g. 'back.out') — not a direction command */
   easingWavefunction: string;
   cognitiveWeight: number;
+  /** Absolute temporal offset from timeline anchor (ms) */
   startTimeMs: number;
+  /** Transition duration (ms); back.out target constraint often 800ms */
   durationMs: number;
 }
 
@@ -35,7 +47,7 @@ export interface AtomicTweenRow {
   orchestrator_generation_id: number;
 }
 
-/** Canonical TweenAtom -> ledger row mapper. */
+/** Canonical TweenAtom → ledger row. Indexes on temporal axis (start_time_ms). */
 export function atomToRow(
   atom: TweenAtom,
   moleculeId: string,
