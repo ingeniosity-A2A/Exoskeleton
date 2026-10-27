@@ -56,7 +56,6 @@ CREATE TABLE IF NOT EXISTS skill_registry (
   description   TEXT DEFAULT ''
 );
 
--- PrismaCoder rubric definitions (filter + reward)
 CREATE TABLE IF NOT EXISTS skill_rubrics (
   rubric_id     TEXT PRIMARY KEY,
   capability    TEXT,
@@ -113,6 +112,37 @@ CREATE TABLE IF NOT EXISTS embedded_skill_wal_cursor (
   last_rowid    BIGINT NOT NULL DEFAULT 0,
   updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Dream-RSI Replay Simulator
+CREATE TABLE IF NOT EXISTS dream_sessions (
+  session_id         TEXT PRIMARY KEY,
+  seed               BIGINT NOT NULL,
+  signature_block_id BIGINT,
+  molecule_id        TEXT,
+  capability_class   TEXT DEFAULT 'generic',
+  candidate_count    USMALLINT NOT NULL,
+  chosen_path_id     USMALLINT,
+  predicted_score    DOUBLE,
+  actual_score       DOUBLE,
+  prediction_error   DOUBLE,
+  created_at         BIGINT NOT NULL DEFAULT (CAST(epoch_ms(now()) AS BIGINT)),
+  completed_at       BIGINT
+);
+
+CREATE TABLE IF NOT EXISTS dream_candidates (
+  session_id         TEXT NOT NULL,
+  path_id            USMALLINT NOT NULL,
+  analog_tween_id    TEXT,
+  analog_molecule_id TEXT,
+  target_property    TEXT NOT NULL,
+  target_value       DOUBLE NOT NULL,
+  replay_score       DOUBLE NOT NULL,
+  rank               USMALLINT NOT NULL,
+  PRIMARY KEY (session_id, path_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dream_falsifiability
+  ON dream_sessions(capability_class, prediction_error);
 
 CREATE TRIGGER tg_outbox_insert AFTER INSERT ON atomic_tweens
 BEGIN
