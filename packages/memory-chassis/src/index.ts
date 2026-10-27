@@ -1,11 +1,6 @@
-/**
- * @exoskeleton/memory-chassis
- * Layer 1b long-term memory surface.
- */
-
-export {
-  buildLatestWinsBatch,
-  buildBaselineQuery,
-  type TransitionInput,
-  type TransitionCommitResult,
-} from "./transition.js";
+export * from './types/CognitiveState';
+export * from './kernel/TemporalSubstrate';
+export * from './data/TwinEngineMatrix';
+export * from './data/quack_sync';
+export * from './data/quack_apply';
+export * from './data/arrow_ingest';
