@@ -1,13 +1,14 @@
 packages:
   - 'packages/*'
 
-# Lockstep rule: both engines on DuckDB 2.0 before first write.
-# Pre-2.0 Wasm cannot read 2.0 storage or speak polished Quack.
+# Dependency versions only — not capability names.
+# Capabilities live in packages/capabilities CapabilityRegistry.
 catalog:
   duckdb: "^2.0.0"
   "@duckdb/duckdb-wasm": "^2.0.0"
   zod: "^3.23.8"
   protobufjs: "^7.4.0"
+  gsap: "^3.12.5"
 
 catalogs:
   legacy-modem:
