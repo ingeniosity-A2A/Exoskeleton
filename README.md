@@ -36,6 +36,17 @@ Ava-007 DuckDB  ←→  Exoskeleton DuckDB (Wasm + server path)
 See `docs/OPERATOR_RUNBOOK.md` and `COMPLETION_CHECKLIST.md`.  
 Claims stay **[R]** until dated evidence is in `docs/VALIDATION.md`.
 
-## REV.IKE
+## REV.IKE naming
 
-Name is **REV.IKE**. Librarian describes task functions only.
+Name is **REV.IKE**. Canonical role, principles and package surface: `docs/REV_IKE.md`. Task functions only: `docs/REV_IKE_LIBRARIAN.md`.
+
+## Lineage
+
+Derived from `a2a-exoskeleton` (archived reference). Reference points: `main` at `f6e363f`; `pnpm/12.10.0-readiness` at `91012c7`; `chore/pnpm-12-repository-local-store` at `fe829ab`.
+
+Decide before copying anything (owner):
+
+- [ ] Which old content is still current
+- [ ] Where Rev.ike belongs (old docs disagree)
+- [ ] Whether TurboVec and the GSAP kernel are integrated here or stay in forged-ai-filing-os
+- [x] Which pnpm version is current — resolved 2026-10-30: the repo pins **pnpm 9.15.0**; the current upstream release is **12.16.1**. The old `12.10.0` vs `12.14.0` question is superseded. Upgrade procedure and caveats live in `docs/PNPM_WORKSPACE_POLICY.md`.

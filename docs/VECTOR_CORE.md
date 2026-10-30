@@ -38,4 +38,4 @@ KNN is not discarded; it is hybrid with temporal index.
 - [x] TS ingest of generation-consistent snapshots
 - [ ] turbovec crate pin in Cargo.toml
 - [ ] napi/Wasm export of snapshot_for_ingest
-- [ ] Measured MSE / SIMD distance vs FAISS baseline in VALIDATION.md
+- [ ] Measured MSE / SIMD distance vs FAISS baseline in docs/VALIDATION.md

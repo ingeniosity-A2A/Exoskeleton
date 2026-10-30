@@ -8,7 +8,7 @@
 - [x] Layer 0 mailbox v2 + napi_bridge
 - [x] REV.IKE intake/curator/grants
 - [x] **Capability layer** — registry, `sense.audio`, compose-harness (Grok Build pattern)
-- [x] Docs: CAPABILITY_LAYER.md (catalog vs registry; Appendix B fit)
+- [x] Docs: docs/CAPABILITY_LAYER.md (catalog vs registry; Appendix B fit)
 
 ## Still missing (runtime / evidence)
 

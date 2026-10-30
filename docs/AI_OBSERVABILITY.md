@@ -1,11 +1,13 @@
-# Exoskeleton AI Observability Architecture
+# Exoskeleton AI Observability
 
-**Status:** Proposed implementation contract  
-**Last reviewed:** 2026-10-20
+**Status:** Proposed implementation contract; not an implementation report  
+**Last reviewed:** 2026-10-30
 
 ## Purpose
 
-Make Exoskeleton executions observable, reproducible, and testable without confusing application traces with claims about an LLM's private reasoning. Record what the system supplied, selected, executed, and validated. Model-internal telemetry is optional and backend-dependent.
+Make Exoskeleton executions observable, reproducible, and testable without confusing application traces with claims about an LLM's private reasoning. Record what the system supplied, selected, executed, and validated.
+
+Implement provider-neutral observability for Exoskeleton orchestration. The first milestone is execution tracing and outcome validation, not reconstruction of a model's private chain of thought. Model-internal telemetry is optional and backend-dependent.
 
 ## Ownership boundaries
 
@@ -58,12 +60,47 @@ The versioned event schema must include: schema_version, trace_id, span_id, pare
 - Sample high-volume traces and retain errors/evaluation failures according to policy.
 - Never infer confidence from generated prose unless a defined, calibrated measure supports it.
 - Treat dimensionality-reduction plots as lossy projections, not literal maps of the full representation space.
+- Avoid metric labels containing trace IDs, prompts, user IDs, or other unbounded values.
+
+## Contract requirements
+
+1. Events are versioned and validated.
+2. Trace IDs propagate through nested capability calls.
+3. Durations use monotonic elapsed time; event timestamps use UTC RFC 3339.
+4. Errors use stable codes and sanitized messages.
+5. Raw prompts, completions, credentials, and memory payloads are not emitted by default.
+6. Model-internal events are optional and include model/runtime revision and capture method.
+7. Exporter failure must not silently change capability semantics. Define bounded buffering and explicit drop/error counters.
+8. Tests use synthetic fixtures and fake credentials; never commit live secrets or private production traces.
+
+## Proposed modules
+
+The repository layout is `packages/*` (pnpm workspace globs), not a top-level `src/`. These paths are proposed against that layout — confirm package ownership after inspection and do not create duplicate modules if an equivalent exists.
+
+- `packages/memory-chassis/src/observability/event.ts` — typed event envelope and constructors.
+- `packages/memory-chassis/src/observability/schema.json` — versioned JSON Schema.
+- `packages/memory-chassis/src/observability/redact.ts` — secret and sensitive-field redaction.
+- `packages/memory-chassis/src/observability/trace-context.ts` — trace/span propagation.
+- `packages/memory-chassis/src/observability/exporter.ts` — exporter interface and no-op default.
+- `packages/memory-chassis/src/observability/evaluation.ts` — test result and regression record contracts.
+- `tests/observability/` — schema, redaction, propagation, and exporter tests.
+
+## Minimum tests
+
+- Valid event accepted; malformed event rejected.
+- Missing trace context is initialized safely at the entry boundary.
+- Parent/child span relationships survive nested capability calls.
+- Secrets in nested attributes and error messages are redacted.
+- Exporter outage does not deadlock execution lifecycle.
+- Unsupported model-internals capability returns explicit unsupported status.
+- Evaluation results identify code/config/test revision.
+- Retention and raw-content capture settings are enforced.
 
 ## Acceptance criteria
 
 - Every execution correlates across Exoskeleton spans and capability calls.
 - Each span has schema version, status, timestamps, and safe error metadata.
-- Tests prove secret redaction and malformed-event rejection.
+- Tests prove secret redaction and malformed-event rejection, and redaction and trace-propagation tests pass.
 - Replay/evaluation records identify the skill, contract, available model metadata, and test version.
 - Dashboard labels distinguish observed facts, derived metrics, and hypotheses.
 - Model-internal panels degrade gracefully when the backend does not expose tensors.
@@ -77,5 +114,14 @@ The versioned event schema must include: schema_version, trace_id, span_id, pare
 5. Add evaluation registry and regression comparison.
 6. Build timeline and performance views.
 7. Add optional model-internal adapters only after runtime capability is verified.
+
+## Definition of done
+
+- [ ] Source layout and runtime inspected; no duplicate abstractions.
+- [ ] Event schema committed and validated.
+- [ ] Instrumentation covers discover/select/allocate/execute/observe/interrupt/reverse/release where those transitions exist.
+- [ ] Dashboard consumes versioned traces.
+- [ ] docs/VALIDATION.md contains dated command output and exact tool versions.
+- [ ] No claims of passing tests or working dashboards without recorded evidence.
 
 No build, test, benchmark, or runtime integration is implied by this design document. Record actual command output in docs/VALIDATION.md.

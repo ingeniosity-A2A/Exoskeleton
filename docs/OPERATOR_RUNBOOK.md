@@ -23,7 +23,7 @@ duckdb chassis.duckdb < packages/memory-chassis/src/schema_20.sql
 ```
 
 Wasm: load `@duckdb/duckdb-wasm`, execute same SQL file.  
-Record table list in `VALIDATION.md` as **[M]**.
+Record table list in `docs/VALIDATION.md` as **[M]**.
 
 ## Cargo
 
