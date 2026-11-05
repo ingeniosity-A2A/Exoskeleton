@@ -49,6 +49,13 @@ CREATE TABLE IF NOT EXISTS turboquant_blocks (
   codes       BLOB      NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS tween_blocks (
+  tween_id TEXT PRIMARY KEY,
+  block_id BIGINT NOT NULL UNIQUE,
+  FOREIGN KEY (tween_id) REFERENCES atomic_tweens(tween_id),
+  FOREIGN KEY (block_id) REFERENCES turboquant_blocks(block_id)
+);
+
 CREATE TABLE IF NOT EXISTS skill_registry (
   capability    TEXT PRIMARY KEY,
   schema_def    VARIANT NOT NULL,
