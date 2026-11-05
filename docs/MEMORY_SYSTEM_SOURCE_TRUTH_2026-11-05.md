@@ -118,3 +118,14 @@ The Layer-0 documentation correctly warns that a seqlock retry loop does not by 
 - Exoskeleton `main`: `67c2d23dd8bcfcb0ce2202fe5857be213840b58b`
 - Cybernetic-Ava007 `main` was inspected separately; cognitive standards and gate remediation are recorded in that repository.
 - No local build, full test suite, live dual-DuckDB deployment, hardware benchmark, or production memory migration was executed as part of this documentation capture.
+
+
+## 10. Whole-system optimization decision update — 2026-11-05
+
+The detailed engineering contract is now [System Memory Source of Truth and Whole-System Optimization Contract](SYSTEM_MEMORY_SOURCE_OF_TRUTH_AND_OPTIMIZATION_2026-11-05.md). It is the required working reference for all subsequent memory-system implementation and benchmark work.
+
+- DuckDB 2.0.0 LTS is the current schema target identified by `schema_20.sql`; schema execution and exact server/Wasm version compatibility still require runtime proof.
+- Arrow is an optional interchange adapter, not a required memory tier or assumed hot-path dependency. Retain, replace, or remove it only after identical-workload comparison against native DuckDB ingestion and other valid paths.
+- DuckDB's native Quack client/server protocol is distinct from this application's outbox/apply mechanism (`quack_outbox`, `quack_sync.ts`, `quack_apply.ts`). Evaluate possible transport simplification without weakening offline-first semantics.
+- Optimize the complete observation-to-durable-ledger-to-retrieval-to-decision lifecycle. Report copies, allocations, boundary ownership, latency distributions, throughput, memory, durability, recovery and retrieval quality.
+- This update does not certify builds, schema execution, end-to-end zero-copy, benchmark performance or production readiness.
