@@ -1,127 +1,88 @@
-# Exoskeleton AI Observability
+# Exoskeleton — AI and Runtime Observability
 
-**Status:** Proposed implementation contract; not an implementation report  
-**Last reviewed:** 2026-10-30
+**Status:** design contract; implementation and runtime coverage must be verified  
+**Reviewed:** 2026-11-04
 
 ## Purpose
 
-Make Exoskeleton executions observable, reproducible, and testable without confusing application traces with claims about an LLM's private reasoning. Record what the system supplied, selected, executed, and validated.
+Make Exoskeleton execution observable, reproducible and testable without claiming access to a model's private reasoning. Record the inputs supplied to the runtime, decisions exposed at system boundaries, capabilities selected, operations performed and outcomes validated.
 
-Implement provider-neutral observability for Exoskeleton orchestration. The first milestone is execution tracing and outcome validation, not reconstruction of a model's private chain of thought. Model-internal telemetry is optional and backend-dependent.
+Observability belongs to the Exoskeleton runtime. It must preserve the authority boundary: Cybernetic-Ava007 owns governing intelligence; Exoskeleton records and manages execution; Omni-OS provides the operating environment; Rev.Ike provides Exoskeleton-owned intake and curation functions.
 
 ## Ownership boundaries
 
-- **Cybernetic-Ava007:** intellect; intent and decisions.
-- **Exoskeleton:** orchestration kernel, capability contracts, lifecycle, trace correlation, measurement, interruption and recovery metadata.
-- **Ava007-Omni-OS:** execution environments and device, network, browser, and compute capabilities.
-- **Agent-X:** isolated experimental/edge skill execution. It retains its own package configuration, lockfile, dependency store, and model assets.
-- **Forged-Filing-Sys / Core-Membrain:** their existing filing and memory responsibilities; Exoskeleton traces may reference approved IDs but must not become an alternate memory authority.
-- **fapo-ran:** separate RAN domain.
+- **Cybernetic-Ava007:** governing intelligence, purpose, reasoning authority and authorized intent.
+- **Exoskeleton:** orchestration events, capability lifecycle, execution traces, resource measurements, interruption/recovery metadata and validation records.
+- **Rev.Ike:** Exoskeleton-owned intake, normalization, curation, provenance and grant-gated materialization/serving.
+- **Ava007 Omni Operating System:** devices, Linux/mobile edge, network, compute, containers, browser and hardware execution environments.
+- **MA Computing:** A2A documentation and A2A-specific protocol material; not the owner of Exoskeleton telemetry.
+- Other repositories retain their own data, model, skill and artifact authority. Exoskeleton may retain approved opaque references, not silently become their replacement source of truth.
 
-Exoskeleton requests capabilities through explicit contracts. It must not embed a GPU, modem, browser engine, device runtime, or model-weight distribution.
+## Required telemetry planes
 
-## Observability planes
+### 1. Execution trace
 
-### 1. Orchestration trace — required
+Record trace/span/parent IDs, UTC timestamp, monotonic duration, component, capability and contract version, lifecycle event, status, retry/timeout/cancellation, artifact references and sanitized error class.
 
-Record trace/span/parent IDs, UTC timestamp, duration, status, capability name and contract version, lifecycle event (discover, select, allocate, execute, observe, interrupt, reverse, release), artifact references, retries, timeouts, cancellation, and sanitized error class.
+Lifecycle events should cover the transitions actually implemented: discover, validate, select, allocate, execute, observe, interrupt, reverse/compensate and release. Do not emit fictitious transitions.
 
-### 2. Context provenance — required, redacted
+### 2. Context and provenance
 
-Record prompt/template version and hash; skill ID/version/hash; memory retrieval references and scores where available; model provider/model identifier and inference configuration when exposed; input/output schema versions and output hash. Do not log secrets, authorization headers, API keys, private user content, or full prompts by default. Raw content capture requires explicit enablement, access control, redaction, and retention limits.
+Record approved identifiers and hashes for intent envelope, prompt/template version, skill/capability version, model/provider metadata when exposed, retrieval references, input/output schema versions and artifact lineage. Do not log secrets, authorization headers, API keys, private content or full prompts by default.
 
-### 3. Outcome and evaluation — required
+### 3. Outcome and evaluation
 
-Track correctness against explicit tests, schema validation, policy checks, task completion, latency, resource consumption, and error rates. Distinguish measured outcomes from model-generated claims.
+Track explicit test results, schema validation, policy/authorization checks, task completion, latency, resource consumption, errors and recovery outcomes. Distinguish measured outcomes from model-generated assertions.
 
-### 4. Model internals — optional
+### 4. Model internals (optional)
 
-Only where the selected model/runtime exposes them: token IDs and logits/top-k probabilities; attention tensors and layer activations; feature/SAE activations and intervention results; embeddings and dimensionality-reduction projections. Record model revision, tokenizer, layer/head, sampling configuration, and capture method. Attention weights are diagnostics, not standalone explanations of outputs.
+Only capture internals when the selected model/runtime explicitly exposes them. Record model revision, tokenizer, layer/head, sampling configuration and capture method. Attention or activation views are diagnostics, not standalone explanations of an output.
 
 ## Event envelope
 
-The versioned event schema must include: schema_version, trace_id, span_id, parent_span_id, timestamp, component, event, capability name and contract version, status, duration_ms, attributes, artifact_refs, and redaction policy metadata. Validate events against a versioned JSON Schema before storing or exporting them. This is a proposed contract, not a claim that implementation exists.
+A versioned event contract should include:
 
-## Dashboard views
+`schema_version, trace_id, span_id, parent_span_id, timestamp, component, event, capability, contract_version, status, duration_ms, attributes, artifact_refs, redaction_policy`.
 
-1. Execution timeline: spans, dependencies, lifecycle transitions, failures, retries, cancellation.
-2. Capability graph: requested capability, selected provider, contract version, allocation and release.
-3. Context provenance: skill and retrieval references, model metadata, redaction status.
-4. Evaluation: pass/fail by suite and version, regression diffs, schema violations.
-5. Performance: p50/p95 latency, throughput, timeout rate, measurable resource cost.
-6. Internals lab: optional attention/activation/embedding views for supported models.
+Validate events against a versioned schema before persistence/export. This document specifies the contract; it does not assert that the schema, exporter or dashboard is implemented.
 
-## Data and security rules
+## Security and retention
 
-- Default to metadata, hashes, and opaque references rather than raw content.
-- Redact secrets before export; never put secrets in trace attributes.
-- Enforce retention, access controls, and audit logs.
-- Separate telemetry storage from authoritative memory and model assets.
-- Sample high-volume traces and retain errors/evaluation failures according to policy.
-- Never infer confidence from generated prose unless a defined, calibrated measure supports it.
-- Treat dimensionality-reduction plots as lossy projections, not literal maps of the full representation space.
-- Avoid metric labels containing trace IDs, prompts, user IDs, or other unbounded values.
+- Default to metadata, hashes and opaque references rather than raw content.
+- Redact secrets before export; never put credentials in trace attributes.
+- Enforce role-based access, retention limits and audit logs.
+- Raw-content capture requires explicit enablement, access control, redaction and retention policy.
+- Separate telemetry from authoritative memory, model assets and A2A documentation.
+- Bound buffers and expose exporter drops/errors; telemetry failure must not silently alter execution semantics.
+- Use synthetic fixtures and fake credentials in tests.
 
-## Contract requirements
+## Acceptance tests
 
-1. Events are versioned and validated.
-2. Trace IDs propagate through nested capability calls.
-3. Durations use monotonic elapsed time; event timestamps use UTC RFC 3339.
-4. Errors use stable codes and sanitized messages.
-5. Raw prompts, completions, credentials, and memory payloads are not emitted by default.
-6. Model-internal events are optional and include model/runtime revision and capture method.
-7. Exporter failure must not silently change capability semantics. Define bounded buffering and explicit drop/error counters.
-8. Tests use synthetic fixtures and fake credentials; never commit live secrets or private production traces.
+- Valid events are accepted and malformed events rejected.
+- Trace/span relationships propagate across nested capability calls.
+- Secrets are redacted from nested attributes and errors.
+- Exporter outage does not deadlock or corrupt lifecycle transitions.
+- Unsupported model-internal capture returns an explicit unsupported status.
+- Evaluation records identify code, configuration, capability and test revisions.
+- Retention and raw-content settings are enforced.
 
-## Proposed modules
+## Proposed implementation sequence
 
-The repository layout is `packages/*` (pnpm workspace globs), not a top-level `src/`. These paths are proposed against that layout — confirm package ownership after inspection and do not create duplicate modules if an equivalent exists.
-
-- `packages/memory-chassis/src/observability/event.ts` — typed event envelope and constructors.
-- `packages/memory-chassis/src/observability/schema.json` — versioned JSON Schema.
-- `packages/memory-chassis/src/observability/redact.ts` — secret and sensitive-field redaction.
-- `packages/memory-chassis/src/observability/trace-context.ts` — trace/span propagation.
-- `packages/memory-chassis/src/observability/exporter.ts` — exporter interface and no-op default.
-- `packages/memory-chassis/src/observability/evaluation.ts` — test result and regression record contracts.
-- `tests/observability/` — schema, redaction, propagation, and exporter tests.
-
-## Minimum tests
-
-- Valid event accepted; malformed event rejected.
-- Missing trace context is initialized safely at the entry boundary.
-- Parent/child span relationships survive nested capability calls.
-- Secrets in nested attributes and error messages are redacted.
-- Exporter outage does not deadlock execution lifecycle.
-- Unsupported model-internals capability returns explicit unsupported status.
-- Evaluation results identify code/config/test revision.
-- Retention and raw-content capture settings are enforced.
-
-## Acceptance criteria
-
-- Every execution correlates across Exoskeleton spans and capability calls.
-- Each span has schema version, status, timestamps, and safe error metadata.
-- Tests prove secret redaction and malformed-event rejection, and redaction and trace-propagation tests pass.
-- Replay/evaluation records identify the skill, contract, available model metadata, and test version.
-- Dashboard labels distinguish observed facts, derived metrics, and hypotheses.
-- Model-internal panels degrade gracefully when the backend does not expose tensors.
-
-## Implementation sequence
-
-1. Define and validate the event schema.
-2. Instrument lifecycle and capability boundaries.
-3. Add redaction, retention, and trace-correlation tests.
-4. Export traces and metrics through a provider-neutral interface.
-5. Add evaluation registry and regression comparison.
-6. Build timeline and performance views.
-7. Add optional model-internal adapters only after runtime capability is verified.
+1. Inspect existing source and avoid duplicate event abstractions.
+2. Define and validate the event schema.
+3. Instrument actual lifecycle and capability boundaries.
+4. Add redaction, retention and trace-correlation tests.
+5. Export through a provider-neutral interface.
+6. Add evaluation and regression comparison.
+7. Add dashboards only after trace contracts and runtime evidence exist.
 
 ## Definition of done
 
-- [ ] Source layout and runtime inspected; no duplicate abstractions.
 - [ ] Event schema committed and validated.
-- [ ] Instrumentation covers discover/select/allocate/execute/observe/interrupt/reverse/release where those transitions exist.
-- [ ] Dashboard consumes versioned traces.
-- [ ] docs/VALIDATION.md contains dated command output and exact tool versions.
-- [ ] No claims of passing tests or working dashboards without recorded evidence.
+- [ ] Actual lifecycle transitions instrumented.
+- [ ] Redaction, propagation and exporter-failure tests pass.
+- [ ] Evaluation records identify exact revisions and test suites.
+- [ ] Dashboards distinguish observed facts, derived metrics and hypotheses.
+- [ ] Dated command output and tool versions recorded in `docs/VALIDATION.md`.
 
-No build, test, benchmark, or runtime integration is implied by this design document. Record actual command output in docs/VALIDATION.md.
+No build, test, benchmark, deployment or dashboard is implied by this design document.

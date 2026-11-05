@@ -1,36 +1,69 @@
-# Twin-Engine DuckDB State Fabric
+# DuckDB State Fabric
 
-**Status:** Canonical (DuckDB 2.0 LTS source of truth)
+**Scope:** Exoskeleton memory/data integration  
+**Status:** design and source map; runtime compatibility must be measured
 
-## Topology
+## Topology and authority
 
-- **Ava-007** — DuckDB cognitive-side instance
-- **Exoskeleton** — DuckDB Wasm (Rust substrate) + server path
-- **Server** — product of requirements between the two instances
+The Exoskeleton data plane may exchange approved state and artifacts with other framework components, but it does not transfer intelligence authority or repository ownership.
 
-Migration gate: both engines on **2.0** before first write. Pre-2.0 cannot read 2.0 storage.
+- Cybernetic-Ava007 remains the governing intelligence authority.
+- Exoskeleton owns its runtime data plane and schema/migration code in this repository.
+- Omni-OS owns the environment in which supported database/runtime processes execute.
+- Rev.Ike owns Exoskeleton intake and curation functions.
+- MA Computing owns A2A documentation and protocol material.
 
-## Schema
+Do not interpret “twin engine” as a second independent Ava007 intelligence or as an A2A architecture.
 
-Canonical DDL: `packages/memory-chassis/src/schema_20.sql`
+## Current source references
 
-- `atomic_tweens` with `easing_code_id`, `orchestrator_generation_id`
-- Triggers enforce Law of Overwrite → `quack_outbox`
-- `turboquant_blocks`, `skill_registry` (VARIANT), skill ledger, watermarks
+- Schema source: `packages/memory-chassis/src/schema_20.sql`.
+- Data and transition code: `packages/memory-chassis/src/data/`.
+- Quack apply/sync code: `packages/memory-chassis/src/data/quack_apply.ts`, `quack_sync.ts`.
+- Matrix integration: `packages/memory-chassis/src/data/TwinEngineMatrix.ts`.
+- Arrow ingestion: `packages/memory-chassis/src/data/arrow_ingest.ts`.
 
-## Runtime path
+## Intended data path
 
 ```
-HolographicTemporalEngine
-  → atomToRow
-  → TwinEngineMatrix.appendTransitionLogTransactional
-  → tg_outbox_* triggers
-  → QuackOutbox.pump → QuackNativeTransport
-  → QuackApply (1b receiver)
+validated transition / artifact
+        |
+        v
+transactional append
+        |
+        v
+database outbox
+        |
+        v
+Quack transport / synchronization
+        |
+        v
+receiver apply + idempotency checks
+        |
+        v
+reconciliation and recovery evidence
 ```
 
-Arena materialization: `arrow_ingest.ingestArenaBlocks` (one copy into turboquant_blocks).
+This is the intended integration shape. Verify actual function names, transactional guarantees, ordering and idempotency in code before relying on this diagram operationally.
 
-## Presentation
+## Schema and migration controls
 
-GLSL: `packages/memory-chassis/src/shaders/ease.glsl` (`backOut`, `spinodal`).
+- Pin and record the exact DuckDB runtime/version for each supported target.
+- Validate schema compatibility before first write.
+- Apply migrations to disposable test databases first.
+- Record schema hash, table inventory, runtime mode and migration output.
+- Test rollback, crash recovery, duplicate delivery and partial batch replay.
+- Do not assume a Wasm database and native/server database have identical persistence or concurrency behavior.
+
+## Copy and materialization accounting
+
+Arrow buffers, WASM views and database insertion paths must be measured independently. A view or subarray does not prove end-to-end zero-copy. Record copies, allocations, serialization and persistence boundaries.
+
+## Acceptance criteria
+
+- Schema migration is repeatable and versioned.
+- Outbox operations are transactional with source mutations.
+- Receiver apply is idempotent.
+- Crash/restart recovery is demonstrated.
+- Data lineage and authorization are preserved.
+- Cross-runtime compatibility is measured rather than assumed.

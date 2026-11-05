@@ -1,61 +1,80 @@
-# Capability Layer (Manifesto-aligned)
+# Exoskeleton Capability Layer
 
-**Authority:** The Exoskeleton Upgrade · Appendix B · External Alignment Addendum v0.1  
-**Rule (main paper §6):** Model calls a capability **by name** and receives a **uniform observation**. It never learns whether the implementation was a function, a coding harness, or a world model.
+**Scope:** runtime capability contracts and lifecycle  
+**Authority boundary:** Cybernetic-Ava007 authorizes intent; Exoskeleton orchestrates; Omni-OS owns the operating environment.
 
-## pnpm catalog ≠ capability registry
+## Purpose
 
-| Mechanism | Purpose |
-|-----------|---------|
-| **pnpm catalog** | Single source of truth for **dependency versions** (`duckdb`, `gsap`, …) in `pnpm-workspace.yaml` |
-| **Capability registry** | Single source of truth for **named abilities** the model may invoke (`sense.audio`, `code.resolve`, `robot_act`) |
+A capability is a named, versioned contract through which Exoskeleton requests a bounded operation and receives a uniform observation. The caller should not need to know whether the provider is a local function, remote service, device adapter, model-backed service or composed workflow.
 
-Do **not** merge these. Catalogs prevent version drift. Registries prevent tool sprawl and orchestration overhead.
+A capability contract is not an intelligence authority. It cannot override Cybernetic-Ava007 policy or acquire privileges merely by appearing in the registry.
 
-## Singular composed capability
+## Distinct mechanisms
 
-Skills, tools, and multi-step harnesses collapse to **one** capability name:
+| Mechanism | Responsibility |
+|---|---|
+| pnpm workspace/catalog | Package membership and dependency-version consistency |
+| Capability registry | Names, versions, schemas, providers and authorization metadata for invocable abilities |
+| Exoskeleton orchestrator | Validation, selection, allocation, lifecycle, timeout, cancellation, observation and release |
+| Omni-OS adapter/provider | Concrete device, network, browser, compute, container and hardware operation |
+| Cybernetic-Ava007 | Governing intent, reasoning authority and authorization policy |
 
-```
-Model ──invoke("sense.audio")──► CapabilityRegistry
-                                      │
-                                      ▼
-                              [ ASR | TTS | Audex | Dynamo speech ]
-                                      │
-                                      ▼
-                              CapabilityObservation { ok, data, latencyMs }
-```
+Do not merge package dependency management with runtime capability discovery.
 
-### Headless sensory node — `sense.audio`
+## Contract envelope
 
-- Modes: understand · transcribe · speak · generate · dialog
-- Backend: pluggable (`mock` default; Audex 2B/30B-A3B or Dynamo `/v1/audio/speech`)
-- Audex remains active on Hugging Face (Nemotron-Labs-Audex collection) — valuable intelligence **behind** the capability, not substrate
+A capability definition should declare:
 
-### Grok Build pattern — `composeHarnessCapability`
+- Stable capability name and semantic version.
+- Input and output schemas.
+- Required authority/grants and execution identity.
+- Provider identity and environment requirements.
+- Timeout, cancellation and resource limits.
+- Idempotency/retry semantics.
+- Observable status and structured error codes.
+- Provenance and artifact references.
 
-Appendix B: Grok Build is a **reference** for wrapping a multi-step harness as one capability — **not** a template for the substrate. See `compose_harness.ts` / `code.resolve` example.
+A successful provider call returns a structured observation. It must not silently claim completion when the provider has only accepted or queued work.
 
-## External fit (Appendix B + 2026 updates)
-
-| Technology | Fit | Layer |
-|------------|-----|--------|
-| **Audex** (active HF) | Audio I/O intelligence | Capability backend for `sense.audio` |
-| **Grok Build** | Multi-step coding harness | Wrap as one composed capability |
-| **Cosmos 3 Edge** | On-device world model | Candidate behind `robot_act()` |
-| **Vera Rubin** | Rack-scale overhead removal | Hardware **precedent** for thesis — not software substrate |
-| **MotionBricks** | Real-time motion primitives | Physical / motion capability composition metaphor |
-| **GSAP** | Temporal ticker / ease | Already in TemporalSubstrate (chassis presentation) |
-| **LTX upscaler** | Visualization only | Out of control loop |
-
-## Stack
+## Lifecycle
 
 ```
-Ava-007  →  Exoskeleton substrate  →  Capability layer
-                                      ├─ sense.audio     (sensory)
-                                      ├─ code.resolve    (composed harness)
-                                      ├─ robot_act()     (physical — future)
-                                      └─ tool/*          (thin tools as needed)
+Authorized intent
+      |
+      v
+validate policy + capability contract
+      |
+      v
+discover -> select -> allocate
+      |
+      v
+execute -> observe -> validate outcome
+      |
+      +---- interrupt / compensate where supported
+      |
+      v
+release resources + persist evidence
 ```
 
-Package: `packages/capabilities`
+The implementation must make unsupported transitions explicit. “Reverse” is not universally possible; irreversible actions require compensation semantics and must be documented as such.
+
+## Current source surface
+
+The repository contains `packages/capabilities` with registry, types, index, audio sensing and composed-harness source. Presence of these files is source-level evidence only. Provider integrations, authorization enforcement and end-to-end lifecycle remain subject to validation.
+
+## Non-goals and boundaries
+
+- Exoskeleton does not own Ava007's identity, purpose or governing reasoning.
+- Exoskeleton does not own the Omni-OS device or operating environment.
+- Exoskeleton does not become an A2A protocol/documentation authority; A2A documentation belongs to MA Computing.
+- A composed capability is not permission to bypass policy, provenance or isolation.
+- A mock provider is not evidence of a production provider.
+
+## Acceptance criteria
+
+- Contract schemas are validated before execution.
+- Authorization is enforced at the runtime boundary.
+- Provider selection is recorded with version and provenance.
+- Timeouts, cancellation, retries and partial failures have defined semantics.
+- Results are structured, validated and trace-correlated.
+- Resource release and compensation behavior are tested.

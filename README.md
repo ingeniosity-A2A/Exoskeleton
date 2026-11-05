@@ -1,52 +1,55 @@
 # Exoskeleton
 
-**Substrate chassis for Ava-007.**
+**Exoskeleton is the runtime and execution substrate in the current Ava007 framework.** It supplies the infrastructure that turns authorized intent and capability requests into managed execution: lifecycle orchestration, memory/data movement, capability contracts, observability, interruption, recovery, and release.
 
-Ava-007 has a DuckDB. Exoskeleton has a DuckDB (Wasm via Rust substrate). The **server** path is the product of requirements between the two instances.
+This repository is the canonical home for Exoskeleton implementation and its internal subsystem **Rev.Ike**.
 
-**Repo:** https://github.com/ingeniosity-A2A/Exoskeleton  
-**Supersedes:** `A2A-Exoskeleton` (sunset / archive)
+## Framework boundaries
 
-## Layout
+| System | Responsibility | Exoskeleton relationship |
+|---|---|---|
+| **Cybernetic-Ava007** | Governing intelligence, purpose, reasoning authority, model/intelligence composition | Exoskeleton receives authorized intent; it does not own Ava007's identity or governing objective |
+| **Exoskeleton** | Runtime substrate, orchestration, memory/data plane, capability lifecycle, Rev.Ike, telemetry and execution evidence | This repository |
+| **Ava007 Omni Operating System (Omni-OS)** | Operating environment: Linux/mobile edge, devices, networking, containers, compute, browser and hardware interfaces | Exoskeleton requests environment capabilities through contracts; Omni-OS owns the environment |
+| **MA Computing** | A2A documentation and A2A-specific architectural/protocol material | A2A documents belong there, not in this repository |
+
+**A2A Exoskeleton is obsolete.** Do not describe the current Exoskeleton as an A2A Exoskeleton, A2A hub, A2A protocol owner, or A2A architecture. A2A documentation is owned by MA Computing.
+
+## Rev.Ike
+
+Rev.Ike belongs to Exoskeleton. It is an internal subsystem for intake, normalization, curation, provenance and grant-gated materialization/serving. Its function set does not make it the owner of Ava007's governing intelligence or a separate framework authority.
+
+Canonical role: `docs/REV_IKE.md`. Task functions: `docs/REV_IKE_LIBRARIAN.md`.
+
+## Repository layout
 
 ```
-packages/memory-chassis/   schema_20, Quack, TwinEngine, Dream-RSI, rubric, Arrow ingest
-packages/substrate-native/ Layer 0 SharedVectorMailbox + C ABI
-packages/librarian/        REV.IKE intake/curator/grants (TS)
-engine/rev_ike.py          Zero-copy intake engine (fail-closed from TS)
-docs/                      Authority, validation, discrepancy, vector core
+engine/rev_ike.py                 Rev.Ike intake engine
+packages/substrate-native/        Native memory plane and mailbox
+packages/memory-chassis/          Memory/data chassis, DuckDB, Quack, vector and temporal integration
+packages/librarian/               Rev.Ike TypeScript function surface
+packages/capabilities/            Capability contracts, registry and composition
+docs/                             Exoskeleton-owned technical documentation
 ```
 
-## Dual-instance fabric
+## Operating principles
 
-```
-Ava-007 DuckDB  ←→  Exoskeleton DuckDB (Wasm + server path)
-                         │
-                         ▼
-                   REV.IKE (intake / curation functions)
-```
+1. **Authority separation:** Exoskeleton executes; Cybernetic-Ava007 owns governing intelligence; Omni-OS owns the operating environment; MA Computing owns A2A documentation.
+2. **Contract-first execution:** discover, validate, select, allocate, execute, observe, interrupt/reverse where supported, and release.
+3. **Explicit ownership:** Rev.Ike is an Exoskeleton subsystem. Do not relocate its ownership to Ava007 or MA Computing.
+4. **Evidence before claims:** code presence is not runtime verification. Validation entries remain `[R]` until dated command output and environment details establish `[M]`.
+5. **No false zero-copy claims:** identify and measure each boundary independently. Any copy/materialization means the complete path is not end-to-end zero-copy.
+6. **Preserve provenance:** retain source, version, revision, grants, transformations and validation evidence for ingested or curated artifacts.
 
-## Package management
+## Build and validation
 
-- **pnpm only** — see `pnpm-workspace.yaml` catalog (DuckDB 2.0 lockstep)
-- Apply `packages/memory-chassis/src/schema_20.sql` on **both** engines before first write
+Package manager: pnpm, pinned by the root `package.json`. Follow `docs/PNPM_WORKSPACE_POLICY.md`; do not assume a target version has been installed or validated.
 
-## Operator completion
+See `docs/OPERATOR_RUNBOOK.md`, `COMPLETION_CHECKLIST.md` and `docs/VALIDATION.md`. No test, benchmark, deployment or integration is considered complete without recorded evidence.
 
-See `docs/OPERATOR_RUNBOOK.md` and `COMPLETION_CHECKLIST.md`.  
-Claims stay **[R]** until dated evidence is in `docs/VALIDATION.md`.
+## Superseded terminology
 
-## REV.IKE naming
-
-Name is **REV.IKE**. Canonical role, principles and package surface: `docs/REV_IKE.md`. Task functions only: `docs/REV_IKE_LIBRARIAN.md`.
-
-## Lineage
-
-Derived from `a2a-exoskeleton` (archived reference). Reference points: `main` at `f6e363f`; `pnpm/12.10.0-readiness` at `91012c7`; `chore/pnpm-12-repository-local-store` at `fe829ab`.
-
-Decide before copying anything (owner):
-
-- [ ] Which old content is still current
-- [ ] Where Rev.ike belongs (old docs disagree)
-- [ ] Whether TurboVec and the GSAP kernel are integrated here or stay in forged-ai-filing-os
-- [x] Which pnpm version is current — resolved 2026-10-30: the repo pins **pnpm 9.15.0**; the current upstream release is **12.16.1**. The old `12.10.0` vs `12.14.0` question is superseded. Upgrade procedure and caveats live in `docs/PNPM_WORKSPACE_POLICY.md`.
+- Do not use **A2A Exoskeleton** as the current system name.
+- Do not place A2A protocol documentation in this repository; MA Computing owns it.
+- Do not describe Rev.Ike as an independent authority or as the owner of Ava007 cognition.
+- Do not conflate the Exoskeleton runtime substrate with the Omni-OS operating environment.

@@ -1,41 +1,69 @@
-# Vector Core — turbovec integration seam
+# Exoskeleton Vector Core
 
-**Reference:** https://github.com/RyanCodrai/turbovec  
-**Layer 0 path:** `packages/substrate-native`  
-**Materialization:** `packages/memory-chassis/src/data/arrow_ingest.ts`
+**Scope:** vector representation, mailbox transport and database materialization  
+**Status:** integration seam; TurboVec integration and measured quality/performance remain open
 
-## Pipeline
+## Data path
 
 ```
-RAW embedding
-  → turbovec: RaBitQ scale → Block-Hadamard → Lloyd-Max → UINT4/UINT2
-  → publish_packed_block(mailbox, gen, dim, bit_width, codes)
-  → snapshot_for_ingest (seqlock-validated copy)
-  → ingestMailboxSnapshot → turboquant_blocks
-  → schema triggers → quack_outbox → QuackApply (1b)
+embedding / source vector
+        |
+        v
+quantize + encode (implementation and revision must be pinned)
+        |
+        v
+publish packed block to native mailbox
+        |
+        v
+safe, lifetime-bounded native consumer view or snapshot
+        |
+        v
+validated Arrow/database adapter
+        |
+        v
+DuckDB persistence and retrieval
 ```
 
-## Compression ladder (corrected)
+The current source contains packed mailbox publication/snapshot code and TypeScript ingestion. It also contains conversion/materialization steps. This path must not be described as end-to-end zero-copy.
 
-| Format | 768-dim |
-|--------|---------|
-| 4-bit | 384 B |
-| BF16 | 1,536 B |
-| f32 | 3,072 B |
-| f64 | 6,144 B |
+## Representation sizes
 
-## Hybrid retrieval
+For a 768-dimensional vector, raw payload sizes (excluding headers, alignment and metadata) are:
 
-- **turbovec:** length renormalization + compressed similarity
-- **Timeline:** exact temporal scrubbing on `start_time_ms` axis
+| Representation | Payload size |
+|---|---:|
+| UINT4 packed | 384 bytes |
+| BF16 | 1,536 bytes |
+| FP32 | 3,072 bytes |
+| FP64 | 6,144 bytes |
 
-KNN is not discarded; it is hybrid with temporal index.
+These are arithmetic payload sizes, not measured allocation or storage footprints.
 
-## Status
+## Retrieval
 
-- [x] Payload header (dim, bit_width) with codes
-- [x] Mailbox publish + snapshot API
-- [x] TS ingest of generation-consistent snapshots
-- [ ] turbovec crate pin in Cargo.toml
-- [ ] napi/Wasm export of snapshot_for_ingest
-- [ ] Measured MSE / SIMD distance vs FAISS baseline in docs/VALIDATION.md
+Compressed similarity and temporal indexing can be combined. Preserve exact temporal keys and define the approximation/recall contract for compressed search. Do not claim a retrieval-quality improvement without a fixed dataset, baseline and measured recall/latency.
+
+## TurboVec
+
+Reference: https://github.com/RyanCodrai/turbovec
+
+The repository's intended integration seam is not proof of an integrated dependency. Pin an exact revision, build it on supported targets and validate encoding/decoding, distance error, recall and throughput against a named baseline before calling it integrated.
+
+## Zero-copy requirements
+
+- Establish a Rust-sound ownership and lifetime protocol before exposing borrowed payloads.
+- Define buffer ownership and release behavior across native, Node and WASM.
+- Avoid hex-string or JSON materialization in any path claimed to be zero-copy.
+- Account for Arrow and DuckDB copies separately.
+- Record all intermediate allocations and byte movement.
+
+## Open acceptance work
+
+- [ ] Sound concurrent mailbox ownership and lifetime protocol.
+- [ ] Exact TurboVec revision and reproducible build.
+- [ ] Native, Node and WASM adapter validation.
+- [ ] Vector accuracy/recall tests against a named baseline.
+- [ ] SIMD performance measurements on named hardware.
+- [ ] End-to-end copy accounting and benchmark report.
+
+See `docs/LAYER_0_MEMORY_PLANE.md` and `docs/VALIDATION.md`.

@@ -1,81 +1,62 @@
 # pnpm Workspace and Store Policy
 
-**Repository:** ingeniosity-A2A/Exoskeleton  
-**Policy reviewed:** 2026-10-30  
-**Target package manager:** pnpm 12.16.1
+**Repository:** `ingeniosity-A2A/Exoskeleton`  
+**Reviewed:** 2026-11-04
 
-## Source of truth
+## Ownership
 
-The repository root owns package.json (package identity, Node engine, exact packageManager pin), pnpm-workspace.yaml (reviewed workspace globs and settings), pnpm-lock.yaml (committed generated dependency graph), and docs/VALIDATION.md (dated evidence for commands actually run).
+This policy governs only the Exoskeleton repository's package graph, lockfile and package store. It does not govern Cybernetic-Ava007, Omni-OS, MA Computing, or other repositories. A2A documentation ownership is MA Computing's responsibility and is unrelated to pnpm workspace ownership.
 
-Never hand-edit lockfile package versions or integrity values. Update the package-manager pin and regenerate the lockfile with that exact pnpm version in one change.
+## Sources of truth
 
-## Version policy
+- Root `package.json`: package identity, Node engine and exact `packageManager` pin.
+- `pnpm-workspace.yaml`: workspace membership and dependency catalogs.
+- `pnpm-lock.yaml`: generated dependency graph.
+- `docs/VALIDATION.md`: dated evidence for commands actually run.
 
-**Current state:** the committed package.json pins `pnpm@9.15.0` and pnpm-lock.yaml carries `lockfileVersion: '9.0'` (verified 2026-10-30).
+Never hand-edit lockfile package versions or integrity values. Change the package-manager pin and regenerate the lockfile with that exact pnpm version as one reviewed change.
 
-**Target:** pnpm 12.16.1, the current official release (published 2026-10-27, https://pnpm.io/). Pin the exact version; do not use `latest` as the project's version pin. This is a two-major-line jump (9 → 12), so treat it as one atomic change rather than an incremental bump.
+## Observed repository state
 
-pnpm 12 is a Rust rewrite and has explicit frozen-lockfile syntax. Use `pnpm install --frozen-lockfile`; do not pass `--frozen-lockfile false`. Release notes: https://pnpm.io/blog/releases/12.0 and https://pnpm.io/blog/.
+At the inspected repository revision, root `package.json` pins `pnpm@9.15.0`. The workspace declares `packages/*` and a dependency catalog. This document does not claim that a later pnpm version has been installed or that an upgrade has been validated.
 
-## pnpm command baseline
-
-On a compatible Node.js 22+ environment, run from the Exoskeleton root:
-
-    pnpm --version
-    pnpm self-update 12.16.1
-    pnpm --version
-
-Then update the root packageManager field to `pnpm@12.16.1`, regenerate the lockfile using that exact pnpm binary, and verify:
-
-    pnpm install --lockfile-only
-    pnpm install --frozen-lockfile
-    git diff -- package.json pnpm-lock.yaml pnpm-workspace.yaml
-
-Do not update only one of package.json and the lockfile: regenerate and commit both with the exact pinned version before treating the update as complete.
-
-If self-update is unavailable in the current environment, follow the official installation instructions for the target platform. Do not use the unqualified npm `latest` tag when it points to pnpm 11; official pnpm 12 instructions use the `latest-12` tag.
-
-## Store boundaries
-
-The Exoskeleton-owned repository-local store, when configured, belongs at `.pnpm-store/` within this checkout and must be Git-ignored. The store is cache data, not source-of-truth dependency metadata. The lockfile remains the reproducibility contract.
-
-Configure a local store explicitly when one is required; do not assume the global store is repository-local, and do not assume `.npmrc` is the correct location for non-registry settings under pnpm 11/12. Configure the setting in a supported configuration location for the pinned release and verify the effective path with `pnpm store path`, following that release's pnpm-workspace.yaml configuration rules.
-
-## Hard repository separation
-
-- Exoskeleton: its own pnpm pin, workspace, lockfile, local package store, and code.
-- Agent-X: separate pnpm configuration, workspace, lockfile, local store, and model-asset/runtime paths. Never merge its model weights or runtime artifacts into Exoskeleton.
-- Ava007 / Cybernetic-Ava007: intellect and its own repository/package boundaries.
-- Ava007-Omni-OS: execution environments and device/compute/browser capabilities.
-
-No cross-repository store sharing by implicit path. Never place centralized stores inside Ava007 or anywhere outside this checkout. Keep model assets as data, not source code — never commit large model files. Do not move existing artifacts until current paths and ownership have been inspected and recorded.
+The earlier target of pnpm 12.16.1 is a proposed upgrade target, not the current repository pin. Recheck the official pnpm release and platform installation guidance at the time of upgrade; do not treat a historical target as permanently current.
 
 ## Workspace membership
 
-The committed pnpm-workspace.yaml declares `packages: ['packages/*']` and a dependency `catalog:` (DuckDB 2.0, zod, protobufjs, gsap), verified 2026-10-30. Earlier revisions held `packages: []`; that changed when `packages/memory-chassis`, `packages/substrate-native`, `packages/librarian`, and `packages/capabilities` were added.
+Current declared workspace glob: `packages/*`.
 
-Add workspace package globs only when real packages exist and ownership has been reviewed. Do not add broad globs that accidentally include generated output, model assets, experiments, or Agent-X. Every workspace package must declare its own package.json. The catalog holds dependency versions only — capability names live in `packages/capabilities` CapabilityRegistry.
+The catalog contains dependency versions only. Capability names and runtime contracts belong to the Exoskeleton capability registry, not the pnpm catalog.
 
-## Required upgrade procedure
+Add workspace packages only when their directories contain real package manifests and their ownership has been reviewed. Avoid globs that capture generated output, model assets, experiments or unrelated repositories.
 
-1. Confirm clean working tree and inspect root files.
-2. Install/use approved pnpm 12.16.1.
-3. Update root packageManager field.
-4. Regenerate pnpm-lock.yaml with pnpm 12.16.1; do not hand-edit it.
+## Store boundaries
+
+- Exoskeleton's repository-local store, if configured, belongs inside this checkout and must be Git-ignored.
+- The store is cache data, not dependency authority; the lockfile is the reproducibility contract.
+- Do not assume the global store is repository-local.
+- Do not share stores across repositories by implicit path.
+- Do not place model assets or runtime sandboxes in the package store.
+- Keep credentials out of manifests, lockfiles and logs.
+
+## Upgrade procedure
+
+1. Inspect the root manifests and current lockfile.
+2. Select and install an exact pnpm release compatible with the supported Node runtime.
+3. Update the `packageManager` field.
+4. Regenerate the lockfile with that exact binary.
 5. Run `pnpm install --frozen-lockfile`.
-6. Verify `pnpm --version`, `node --version`, `pnpm store path`, workspace membership, and root-file diffs.
-7. Record exact output in docs/VALIDATION.md.
-8. Confirm Agent-X remains unchanged and independently configured.
+6. Verify package membership, `pnpm store path`, Node/pnpm versions and root-file diffs.
+7. Run the package build/typecheck/test commands that actually exist.
+8. Record exact output and environment in `docs/VALIDATION.md`.
 
-## Security and reproducibility
+Do not label the upgrade complete until the manifest, lockfile and measured install all agree.
 
-- Use pnpm 12 build-script allowlist controls; review dependency build scripts rather than permitting all builds.
-- Keep credentials in environment/secret management, never in committed manifests or logs.
-- Keep node_modules/, .pnpm-store/, generated build output, local model assets, and runtime sandboxes out of Git.
-- Use frozen installs in CI and reproducible environments.
-- Treat lockfile changes as reviewable supply-chain changes.
+## Framework separation
 
-## Current-state caveat
+- **Cybernetic-Ava007:** governing intelligence and its own repository/package boundary.
+- **Exoskeleton:** this repository's runtime substrate, Rev.Ike and package graph.
+- **Omni-OS:** operating environment and device/compute capabilities; independently managed.
+- **MA Computing:** A2A documentation and protocol material; not part of this workspace.
 
-As of 2026-10-30, Exoskeleton's committed package.json pins **pnpm 9.15.0**, not 12.x, and pnpm-lock.yaml is still at `lockfileVersion: '9.0'`. This document specifies the intended upgrade to 12.16.1; it does not claim the lockfile has been regenerated or that the upgrade has been validated. Complete the upgrade as a single atomic change and record the evidence in docs/VALIDATION.md.
+No package manager policy authorizes copying code, model assets, secrets or lockfiles between these systems.
