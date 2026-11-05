@@ -1,25 +1,27 @@
-// Layer 0 — memory-model correct SharedVectorMailbox
-// Soundness rules:
-//   R1: slots are NEVER freed — recycling by generation ring (kills UAF).
-//   R2: (payload, generation) published through ONE word: the slot seqlock.
-//   R3: single publisher thread (the ingestion worker). Enforced in debug.
-//   R4: readers copy under a seqlock bracket; torn reads are detected, not trusted.
-// Scope: threads of one process. Cross-process delivery = /dev/shm ring, not here.
+// Layer 0 — memory-model sound SharedVectorMailbox.
 //
-// Memory model: std::sync::atomic follows the C++20 model (Rust std docs).
-// Pattern: publisher Release store/fence; reader Relaxed load + Acquire fence.
+// R1: storage is owned by the mailbox and is never freed while it is borrowed.
+// R2: payload bytes are AtomicU8; a seqlock detects mixed generations but is
+//     NOT used to justify concurrent non-atomic reads/writes.
+// R3: publishers are serialized in every build.
+// R4: readers return a copied, generation-validated snapshot.
+// Scope: threads in one process. Cross-process transport is a separate adapter.
 
-use std::sync::atomic::{fence, AtomicPtr, AtomicU64, Ordering};
+use std::hint::spin_loop;
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU64, AtomicUsize, Ordering};
 
 pub const SLOT_CAP: usize = 4096;
-pub const RING_LEN: usize = 8; // power of two
-const MAX_READ_RETRY: usize = 8;
+pub const RING_LEN: usize = 8;
+const MAX_READ_RETRY: usize = 16;
+const EMPTY_SLOT: usize = usize::MAX;
 
 #[repr(C, align(64))]
 pub struct Slot {
-    seq: AtomicU64,        // seqlock: odd = write in progress, even = published
-    generation: AtomicU64, // lives WITH the payload — no torn (ptr, gen) pairs
-    data: [u8; SLOT_CAP],  // layout: [u32 len][bytes...]
+    seq: AtomicU64,
+    generation: AtomicU64,
+    // Atomic bytes avoid the Rust data race that a conventional seqlock over
+    // [u8; N] would create when a reader overlaps a writer.
+    data: [AtomicU8; SLOT_CAP],
 }
 
 impl Slot {
@@ -27,137 +29,95 @@ impl Slot {
         Self {
             seq: AtomicU64::new(0),
             generation: AtomicU64::new(0),
-            data: [0; SLOT_CAP],
+            data: [const { AtomicU8::new(0) }; SLOT_CAP],
         }
     }
 }
 
 pub struct SharedVectorMailbox {
     ring: [Slot; RING_LEN],
-    active: AtomicPtr<Slot>,
-    debug_owner: AtomicU64,
+    active_index: AtomicUsize,
+    publisher: AtomicBool,
+}
+
+impl Default for SharedVectorMailbox {
+    fn default() -> Self { Self::new() }
 }
 
 impl SharedVectorMailbox {
     pub const fn new() -> Self {
         Self {
-            ring: [
-                Slot::new(),
-                Slot::new(),
-                Slot::new(),
-                Slot::new(),
-                Slot::new(),
-                Slot::new(),
-                Slot::new(),
-                Slot::new(),
-            ],
-            active: AtomicPtr::new(std::ptr::null_mut()),
-            debug_owner: AtomicU64::new(0),
+            ring: [const { Slot::new() }; RING_LEN],
+            active_index: AtomicUsize::new(EMPTY_SLOT),
+            publisher: AtomicBool::new(false),
         }
     }
 
-    pub fn init(&self) {
-        assert!(
-            AtomicPtr::<u8>::is_lock_free() && AtomicU64::is_lock_free(),
-            "Layer 0 requires lock-free pointer and u64 atomics on this target"
-        );
-    }
-
-    /// Law of Overwrite, publication-correct: one seqlock write section,
-    /// generation stored inside the slot, active pointer swapped last (Release).
-    pub fn publish_latest_generation(&self, payload: &[u8], gen: u64) {
-        debug_assert!(self.claim_debug_owner(), "R3 violated: concurrent publishers");
-
-        assert!(payload.len() + 4 <= SLOT_CAP, "payload exceeds fixed slot");
-        let slot = &self.ring[gen as usize % RING_LEN];
-
-        let s = slot.seq.load(Ordering::Relaxed);
-        slot.seq.store(s.wrapping_add(1), Ordering::Relaxed); // odd: writing
-        fence(Ordering::Release);
-        unsafe {
-            let dst = slot.data.as_ptr() as *mut u8;
-            (dst as *mut u32).write_unaligned(payload.len() as u32);
-            std::ptr::copy_nonoverlapping(payload.as_ptr(), dst.add(4), payload.len());
+    fn lock_publisher(&self) {
+        while self.publisher.compare_exchange_weak(
+            false, true, Ordering::Acquire, Ordering::Relaxed
+        ).is_err() {
+            spin_loop();
         }
-        slot.generation.store(gen, Ordering::Relaxed);
-        slot.seq.store(s.wrapping_add(2), Ordering::Release); // even: published
-
-        self.active
-            .store(slot as *const Slot as *mut Slot, Ordering::Release);
     }
 
-    /// Sound read path: copy under a validated seqlock bracket.
+    /// Publish one immutable logical snapshot. Concurrent publishers are
+    /// serialized in release and debug builds.
+    pub fn publish_latest_generation(&self, payload: &[u8], generation: u64) {
+        assert!(payload.len() <= SLOT_CAP - 4, "payload exceeds fixed slot");
+        self.lock_publisher();
+
+        let index = generation as usize % RING_LEN;
+        let slot = &self.ring[index];
+        let prior = slot.seq.load(Ordering::Relaxed) & !1;
+        slot.seq.store(prior.wrapping_add(1), Ordering::Release);
+
+        let len = payload.len() as u32;
+        for (i, byte) in len.to_le_bytes().iter().enumerate() {
+            slot.data[i].store(*byte, Ordering::Relaxed);
+        }
+        for (i, byte) in payload.iter().enumerate() {
+            slot.data[i + 4].store(*byte, Ordering::Relaxed);
+        }
+        slot.generation.store(generation, Ordering::Relaxed);
+        slot.seq.store(prior.wrapping_add(2), Ordering::Release);
+        self.active_index.store(index, Ordering::Release);
+        self.publisher.store(false, Ordering::Release);
+    }
+
+    /// Copy a stable snapshot. None means no publication or retry exhaustion.
     pub fn acquire_snapshot_copy(&self, out: &mut Vec<u8>) -> Option<u64> {
         for _ in 0..MAX_READ_RETRY {
-            let ptr = self.active.load(Ordering::Relaxed);
-            if ptr.is_null() {
-                return None;
-            }
-            fence(Ordering::Acquire);
-            let slot = unsafe { &*ptr };
+            let index = self.active_index.load(Ordering::Acquire);
+            if index == EMPTY_SLOT { return None; }
+            if index >= RING_LEN { return None; }
 
-            let s1 = slot.seq.load(Ordering::Acquire);
-            if s1 & 1 == 1 {
-                continue; // writer in section
+            let slot = &self.ring[index];
+            let before = slot.seq.load(Ordering::Acquire);
+            if before & 1 != 0 { spin_loop(); continue; }
+
+            let mut len_bytes = [0u8; 4];
+            for (i, byte) in len_bytes.iter_mut().enumerate() {
+                *byte = slot.data[i].load(Ordering::Relaxed);
             }
-            fence(Ordering::Acquire);
-            let len = unsafe { (slot.data.as_ptr() as *const u32).read_unaligned() } as usize;
-            if len + 4 > SLOT_CAP {
-                continue;
+            let len = u32::from_le_bytes(len_bytes) as usize;
+            if len > SLOT_CAP - 4 { continue; }
+
+            let generation = slot.generation.load(Ordering::Relaxed);
+            out.clear();
+            out.reserve(len);
+            for i in 0..len {
+                out.push(slot.data[i + 4].load(Ordering::Relaxed));
             }
-            let gen = slot.generation.load(Ordering::Relaxed);
-            out.resize(len, 0);
-            out.copy_from_slice(unsafe {
-                std::slice::from_raw_parts(slot.data.as_ptr().add(4), len)
-            });
-            fence(Ordering::Acquire);
-            let s2 = slot.seq.load(Ordering::Relaxed);
-            if s1 == s2 {
-                return Some(gen);
+
+            let after = slot.seq.load(Ordering::Acquire);
+            if before == after && after & 1 == 0
+                && self.active_index.load(Ordering::Acquire) == index
+            {
+                return Some(generation);
             }
         }
         None
-    }
-
-    /// Escape hatch for true zero-copy GPU binds.
-    /// UNSOUND unless caller re-validates seq before use and after copy.
-    ///
-    /// # Safety
-    /// Caller must re-read seq (Acquire) after consuming; equal+even or abort.
-    pub unsafe fn acquire_active_raw(&self) -> Option<(*const u8, usize, u64)> {
-        let ptr = self.active.load(Ordering::Relaxed);
-        if ptr.is_null() {
-            return None;
-        }
-        fence(Ordering::Acquire);
-        let slot = &*ptr;
-        let s1 = slot.seq.load(Ordering::Acquire);
-        if s1 & 1 == 1 {
-            return None;
-        }
-        fence(Ordering::Acquire);
-        let len = (slot.data.as_ptr() as *const u32).read_unaligned() as usize;
-        let gen = slot.generation.load(Ordering::Relaxed);
-        Some((slot.data.as_ptr().add(4), len, gen))
-    }
-
-    #[cfg(debug_assertions)]
-    fn claim_debug_owner(&self) -> bool {
-        // ThreadId has no stable as_u64; use a process-local counter hash of Debug.
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
-        let mut h = DefaultHasher::new();
-        std::thread::current().id().hash(&mut h);
-        let me = h.finish();
-        self.debug_owner
-            .compare_exchange(0, me, Ordering::Relaxed, Ordering::Relaxed)
-            .is_ok()
-            || self.debug_owner.load(Ordering::Relaxed) == me
-    }
-
-    #[cfg(not(debug_assertions))]
-    fn claim_debug_owner(&self) -> bool {
-        true
     }
 }
 
@@ -167,25 +127,21 @@ mod tests {
 
     #[test]
     fn publish_and_copy_roundtrip() {
-        let m = SharedVectorMailbox::new();
-        m.init();
+        let mailbox = SharedVectorMailbox::new();
         let payload = b"turboquant-slot-payload";
-        m.publish_latest_generation(payload, 1);
+        mailbox.publish_latest_generation(payload, 1);
         let mut out = Vec::new();
-        let gen = m.acquire_snapshot_copy(&mut out).expect("snapshot");
-        assert_eq!(gen, 1);
+        assert_eq!(mailbox.acquire_snapshot_copy(&mut out), Some(1));
         assert_eq!(out, payload);
     }
 
     #[test]
     fn overwrite_advances_generation() {
-        let m = SharedVectorMailbox::new();
-        m.init();
-        m.publish_latest_generation(b"a", 1);
-        m.publish_latest_generation(b"b", 2);
+        let mailbox = SharedVectorMailbox::new();
+        mailbox.publish_latest_generation(b"a", 1);
+        mailbox.publish_latest_generation(b"b", 2);
         let mut out = Vec::new();
-        let gen = m.acquire_snapshot_copy(&mut out).unwrap();
-        assert_eq!(gen, 2);
+        assert_eq!(mailbox.acquire_snapshot_copy(&mut out), Some(2));
         assert_eq!(out, b"b");
     }
 }
