@@ -30,7 +30,9 @@ Exoskeleton/
 └── pnpm-workspace.yaml
 ```
 
-## Memory system
+## Memory system and optimization source of truth
+
+- [System Memory Source of Truth and Whole-System Optimization Contract](docs/SYSTEM_MEMORY_SOURCE_OF_TRUTH_AND_OPTIMIZATION_2026-11-05.md) — governing memory implementation map, DuckDB 2.0 evaluation, Arrow optionality, Quack distinction, whole-system benchmark and release gates.
 
 - [Memory System Source Truth — 2026-11-05](docs/MEMORY_SYSTEM_SOURCE_TRUTH_2026-11-05.md)
 - [Layer 0 Memory Plane](docs/LAYER_0_MEMORY_PLANE.md)
