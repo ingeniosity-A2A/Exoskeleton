@@ -10,3 +10,4 @@ packages/capabilities/dist/
 
 # Timestamped benchmark runs. The published artifact is tracked explicitly.
 packages/capabilities/bench/results/*.json
+packages/capabilities/bench/results/*.jsonl

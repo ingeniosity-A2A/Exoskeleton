@@ -29,7 +29,7 @@ function setup({ invoke, contract, capacity } = {}) {
     },
   });
   const sink = new MemoryEventSink(capacity);
-  const lifecycle = new CapabilityLifecycle({ registry, sink, defaultTimeoutMs: 60 });
+  const lifecycle = new CapabilityLifecycle({ registry, sink, defaultTimeoutMs: 60, drainMs: 30 });
   if (contract) lifecycle.registerContract({ name: 'cap.x', version: '1.2.3', ...contract });
   return { registry, sink, lifecycle, invocations: () => invocations };
 }
@@ -162,6 +162,71 @@ test('in-flight abort cancels and releases', async () => {
   controller.abort();
   const result = await pending;
   assert.equal(result.errorCode, 'CANCELLED');
+  assert.equal(releases, 1);
+});
+
+test('cancellation reaches the provider and the work stops before release', async () => {
+  const order = [];
+  let processed = 0;
+  const total = 5000;
+  const { lifecycle } = setup({
+    invoke: async (req) => {
+      for (let i = 0; i < total; i += 1) {
+        if (req.signal?.aborted) break;
+        processed += 1;
+        await sleep(1);
+      }
+      order.push('work-settled');
+      return okObs('cap.x', { processed });
+    },
+    contract: { allocate: () => ({ resources: ['r'], release: () => { order.push('released'); } }) },
+  });
+  const controller = new AbortController();
+  const pending = lifecycle.execute({ capability: 'cap.x', input: {}, signal: controller.signal, timeoutMs: 5000 });
+  await sleep(15);
+  controller.abort();
+  const result = await pending;
+  assert.equal(result.errorCode, 'CANCELLED');
+  assert.equal(result.abortPropagated, true);
+  assert.equal(result.workDrain, 'settled');
+  assert.ok(processed < total, `provider kept running: processed ${processed}/${total}`);
+  assert.deepEqual(order, ['work-settled', 'released']);
+  const executeEvent = result.events.find((e) => e.phase === 'execute');
+  assert.equal(executeEvent.detail.abortPropagated, true);
+  assert.equal(executeEvent.detail.workDrain, 'settled');
+});
+
+test('timeout aborts the provider signal, not only the awaiting caller', async () => {
+  let sawAbort = false;
+  let releases = 0;
+  const { lifecycle } = setup({
+    invoke: (req) =>
+      new Promise((resolve) => {
+        req.signal?.addEventListener('abort', () => {
+          sawAbort = true;
+          resolve(okObs('cap.x'));
+        });
+      }),
+    contract: { allocate: () => ({ resources: ['r'], release: () => { releases += 1; } }) },
+  });
+  const result = await lifecycle.execute({ capability: 'cap.x', input: {}, timeoutMs: 20 });
+  assert.equal(result.errorCode, 'TIMEOUT');
+  assert.equal(sawAbort, true);
+  assert.equal(result.abortPropagated, true);
+  assert.equal(result.workDrain, 'settled');
+  assert.equal(releases, 1);
+});
+
+test('a provider that ignores cancellation is reported undrained, and still released', async () => {
+  let releases = 0;
+  const { lifecycle } = setup({
+    invoke: () => sleep(300).then(() => okObs('cap.x')),
+    contract: { allocate: () => ({ resources: ['r'], release: () => { releases += 1; } }) },
+  });
+  const result = await lifecycle.execute({ capability: 'cap.x', input: {}, timeoutMs: 20 });
+  assert.equal(result.errorCode, 'TIMEOUT');
+  assert.equal(result.abortPropagated, true);
+  assert.equal(result.workDrain, 'pending');
   assert.equal(releases, 1);
 });
 

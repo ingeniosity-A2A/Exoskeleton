@@ -16,7 +16,12 @@
  * by the caller; governing authorization belongs to Cybernetic-Ava007.
  */
 
-import type { CapabilityHandler, CapabilityObservation, CapabilityRequest } from './types.js';
+import type {
+  CapabilityHandler,
+  CapabilityObservation,
+  CapabilityRequest,
+  CapabilitySignal,
+} from './types.js';
 import type { CapabilityRegistry } from './registry.js';
 import type {
   EventSink,
@@ -27,11 +32,42 @@ import type {
 } from './events.js';
 import { LIFECYCLE_EVENT_SCHEMA, MemoryEventSink } from './events.js';
 
-/** Structural subset of AbortSignal, so the package needs no DOM/Node types. */
-export interface LifecycleSignal {
-  readonly aborted: boolean;
-  addEventListener(type: 'abort', listener: () => void): void;
-  removeEventListener(type: 'abort', listener: () => void): void;
+/** Public name kept for callers; the structural type lives with the contract. */
+export type LifecycleSignal = CapabilitySignal;
+
+/**
+ * Abort fan-out used internally. Node ships AbortController, but this package
+ * pins no DOM/Node types, so the channel implements the same structural subset
+ * and can additionally be aborted by the lifecycle itself on timeout.
+ */
+class AbortChannel implements CapabilitySignal {
+  private readonly listeners = new Set<() => void>();
+  private abortedFlag = false;
+
+  get aborted(): boolean {
+    return this.abortedFlag;
+  }
+
+  abort(): void {
+    if (this.abortedFlag) return;
+    this.abortedFlag = true;
+    for (const listener of this.listeners) {
+      try {
+        listener();
+      } catch {
+        // One faulty listener must not prevent the others from observing abort.
+      }
+    }
+    this.listeners.clear();
+  }
+
+  addEventListener(_type: 'abort', listener: () => void): void {
+    this.listeners.add(listener);
+  }
+
+  removeEventListener(_type: 'abort', listener: () => void): void {
+    this.listeners.delete(listener);
+  }
 }
 
 export interface ValidationIssue {
@@ -88,6 +124,13 @@ export interface LifecycleResult {
   generationId: number;
   cleanup: 'released' | 'failed' | 'not_required';
   eventCount: number;
+  /** True when the provider-facing signal was aborted (timeout or cancellation). */
+  abortPropagated: boolean;
+  /**
+   * `settled`: the provider stopped before release. `pending`: it outlived the
+   * bounded drain and may still be running, so cleanup did not wait for it.
+   */
+  workDrain: 'none' | 'settled' | 'pending';
   events: LifecycleEvent[];
 }
 
@@ -98,18 +141,28 @@ type Outcome =
   | { kind: 'cancelled' };
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+/** How long aborted work may take to unwind before resources are released anyway. */
+const DEFAULT_DRAIN_MS = 250;
 
 export class CapabilityLifecycle {
   private readonly registry: CapabilityRegistry;
   private readonly sink: EventSink;
   private readonly contracts = new Map<string, CapabilityContract>();
   private readonly defaultTimeoutMs: number;
+  private readonly drainMs: number;
   private generation = 0;
 
-  constructor(options: { registry: CapabilityRegistry; sink?: EventSink; defaultTimeoutMs?: number }) {
+  constructor(options: {
+    registry: CapabilityRegistry;
+    sink?: EventSink;
+    defaultTimeoutMs?: number;
+    /** Bounded wait for aborted provider work to settle before release. */
+    drainMs?: number;
+  }) {
     this.registry = options.registry;
     this.sink = options.sink ?? new MemoryEventSink();
     this.defaultTimeoutMs = options.defaultTimeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.drainMs = options.drainMs ?? DEFAULT_DRAIN_MS;
   }
 
   registerContract(contract: CapabilityContract): void {
@@ -130,6 +183,8 @@ export class CapabilityLifecycle {
     const capability = request.capability;
     const events: LifecycleEvent[] = [];
     let seq = 0;
+    let abortPropagated = false;
+    let workDrain: LifecycleResult['workDrain'] = 'none';
 
     const emit = (
       phase: LifecyclePhase,
@@ -179,6 +234,8 @@ export class CapabilityLifecycle {
       generationId,
       cleanup,
       eventCount: events.length,
+      abortPropagated,
+      workDrain,
       events,
     });
 
@@ -241,14 +298,43 @@ export class CapabilityLifecycle {
     let errorCode: LifecycleErrorCode | null = null;
     let errorText: string | undefined;
 
-    if (request.signal?.aborted) {
+    // Cancellation is propagated to the provider, not merely applied to the
+    // awaiting caller: the handler receives a signal the lifecycle aborts on
+    // timeout or caller cancellation, and resources are released only after the
+    // work has settled or the bounded drain has elapsed.
+    const channel = new AbortChannel();
+    const callerSignal = request.signal;
+    const onCallerAbort = (): void => channel.abort();
+    if (callerSignal) {
+      if (callerSignal.aborted) channel.abort();
+      else callerSignal.addEventListener('abort', onCallerAbort);
+    }
+
+    if (channel.aborted) {
+      abortPropagated = true;
       outcome = { kind: 'cancelled' };
       emit('interrupt', 'cancelled', 0, 'CANCELLED', { stage: 'pre-execute', handlerInvoked: false });
     } else {
-      const payload: CapabilityRequest = { capability, input: request.input, generationId };
+      const payload: CapabilityRequest = {
+        capability,
+        input: request.input,
+        generationId,
+        traceId,
+        signal: channel,
+      };
       const work = Promise.resolve().then(() => handler.invoke(payload));
-      outcome = await this.race(work, timeoutMs, request.signal);
+      // Keep a settlement observer so a rejected provider cannot surface as an
+      // unhandled rejection while the lifecycle is still draining it.
+      work.catch(() => {});
+      outcome = await this.race(work, timeoutMs, channel);
+      if (outcome.kind === 'timeout' || outcome.kind === 'cancelled') {
+        workDrain = (await this.drain(work)) ? 'settled' : 'pending';
+      } else {
+        workDrain = 'settled';
+      }
+      callerSignal?.removeEventListener('abort', onCallerAbort);
     }
+    abortPropagated = channel.aborted;
 
     const executeMs = performance.now() - executeStart;
     if (outcome.kind === 'ok') {
@@ -257,19 +343,23 @@ export class CapabilityLifecycle {
         errorCode = 'HANDLER_ERROR';
         errorText = outcome.value.error ?? 'handler reported failure';
       }
-      emit('execute', errorCode ? 'error' : 'ok', executeMs, errorCode, { reportedOk: outcome.value.ok });
+      emit('execute', errorCode ? 'error' : 'ok', executeMs, errorCode, {
+        reportedOk: outcome.value.ok,
+        abortPropagated,
+        workDrain,
+      });
     } else if (outcome.kind === 'timeout') {
       errorCode = 'TIMEOUT';
       errorText = `timed out after ${timeoutMs}ms`;
-      emit('execute', 'timeout', executeMs, 'TIMEOUT', { timeoutMs });
+      emit('execute', 'timeout', executeMs, 'TIMEOUT', { timeoutMs, abortPropagated, workDrain });
     } else if (outcome.kind === 'cancelled') {
       errorCode = 'CANCELLED';
       errorText = 'execution cancelled';
-      emit('execute', 'cancelled', executeMs, 'CANCELLED', { cooperative: true });
+      emit('execute', 'cancelled', executeMs, 'CANCELLED', { cooperative: true, abortPropagated, workDrain });
     } else {
       errorCode = 'HANDLER_ERROR';
       errorText = outcome.error;
-      emit('execute', 'error', executeMs, 'HANDLER_ERROR', { error: outcome.error });
+      emit('execute', 'error', executeMs, 'HANDLER_ERROR', { error: outcome.error, abortPropagated, workDrain });
     }
 
     // 5. observe ------------------------------------------------------------
@@ -317,15 +407,15 @@ export class CapabilityLifecycle {
     return build(errorCode === null, errorCode, errorText, data, cleanup);
   }
 
-  /** Race handler work against a timeout and an abort signal. */
-  private race(work: Promise<CapabilityObservation>, timeoutMs: number, signal?: LifecycleSignal): Promise<Outcome> {
+  /** Race handler work against the timeout and the provider-facing channel. */
+  private race(work: Promise<CapabilityObservation>, timeoutMs: number, channel: AbortChannel): Promise<Outcome> {
     return new Promise<Outcome>((resolve) => {
       let settled = false;
+      let timedOut = false;
       let timer: unknown;
-      const onAbort = (): void => finish({ kind: 'cancelled' });
       const detach = (): void => {
         if (timer !== undefined) clearTimeout(timer);
-        if (signal) signal.removeEventListener('abort', onAbort);
+        channel.removeEventListener('abort', onAbort);
       };
       const finish = (outcome: Outcome): void => {
         if (settled) return;
@@ -333,13 +423,35 @@ export class CapabilityLifecycle {
         detach();
         resolve(outcome);
       };
+      const onAbort = (): void => finish(timedOut ? { kind: 'timeout' } : { kind: 'cancelled' });
       work.then(
         (value) => finish({ kind: 'ok', value }),
         (error) => finish({ kind: 'error', error: String(error) }),
       );
-      if (timeoutMs > 0) timer = setTimeout(() => finish({ kind: 'timeout' }), timeoutMs);
-      if (signal) signal.addEventListener('abort', onAbort);
+      channel.addEventListener('abort', onAbort);
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => {
+          timedOut = true;
+          // Abort the provider before resolving so cooperative work stops.
+          channel.abort();
+          finish({ kind: 'timeout' });
+        }, timeoutMs);
+      }
     });
+  }
+
+  /**
+   * Wait (bounded) for aborted work to unwind. True when the provider settled,
+   * false when it outlived the drain and may still be running.
+   */
+  private drain(work: Promise<CapabilityObservation>): Promise<boolean> {
+    return Promise.race([
+      work.then(
+        () => true,
+        () => true,
+      ),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), this.drainMs)),
+    ]);
   }
 
   private newTraceId(): string {

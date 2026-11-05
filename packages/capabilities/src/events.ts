@@ -56,6 +56,16 @@ export interface EventSink {
   emit(event: LifecycleEvent): void;
 }
 
+/**
+ * Discards every event. This is the "telemetry disabled" baseline used to
+ * measure what emitting events costs, not a placeholder exporter.
+ */
+export class NullEventSink implements EventSink {
+  emit(_event: LifecycleEvent): void {
+    /* intentionally empty */
+  }
+}
+
 /** Bounded in-memory ring buffer. Never grows without limit. */
 export class MemoryEventSink implements EventSink {
   readonly events: LifecycleEvent[] = [];
