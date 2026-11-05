@@ -52,3 +52,4 @@ Related authority:
 
 - [Memory System Source Truth — 2026-11-05](docs/MEMORY_SYSTEM_SOURCE_TRUTH_2026-11-05.md) records the active memory layers, implementation inventory, ownership boundaries, and validation gaps.
 - [Layer 0 Memory Plane](docs/LAYER_0_MEMORY_PLANE.md) and [Vector Core](docs/VECTOR_CORE.md) define the native mailbox and vector integration constraints.
+- [Memory Governance + Liquid AI Integration Proposal](docs/MEMORY_GOVERNANCE_LIQUID_AI_INTEGRATION_PROPOSAL.md) — source-checked Mem0, d1-Omni and LFM3-Omni roles, adapter contracts, implementation blockers, and acceptance gates.
