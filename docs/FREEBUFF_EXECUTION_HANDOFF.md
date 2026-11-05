@@ -99,15 +99,35 @@ cd "<EXOSKELETON_LOCAL_PATH>"
 set -euo pipefail
 
 echo "=== ORIGIN ==="
-git remote get-url origin
-test "$(git remote get-url origin)" = "https://github.com/ingeniosity-A2A/Exoskeleton.git"
+ORIGIN_URL="$(git remote get-url origin)"
+printf 'ORIGIN=%s\n' "$ORIGIN_URL"
+case "$ORIGIN_URL" in
+  https://github.com/ingeniosity-A2A/Exoskeleton.git|git@github.com:ingeniosity-A2A/Exoskeleton.git) ;;
+  *) echo "STOP: origin is not the authoritative Exoskeleton repository"; exit 90 ;;
+esac
+
+echo "=== PRESERVE LOCAL WORK ==="
+git status --short --branch
+test -z "$(git status --porcelain)"
 
 echo "=== FETCH AUTHORITATIVE MAIN ==="
 git fetch --prune origin main
-git switch main
-git pull --ff-only origin main
+test "$(git branch --show-current)" = "main"
 
-echo "=== LOCAL/GITHUB IDENTITY ==="
+echo "=== RECORD PRE-SYNC IDENTITY ==="
+LOCAL_BEFORE="$(git rev-parse HEAD)"
+REMOTE_SHA="$(git rev-parse origin/main)"
+printf 'LOCAL_BEFORE=%s\nREMOTE_MAIN_SHA=%s\n' "$LOCAL_BEFORE" "$REMOTE_SHA"
+
+if test "$LOCAL_BEFORE" != "$REMOTE_SHA"; then
+  git merge-base --is-ancestor "$LOCAL_BEFORE" "$REMOTE_SHA" || {
+    echo "STOP: local main is ahead of or diverged from origin/main; preserve and report both histories."
+    exit 91
+  }
+  git pull --ff-only origin main
+fi
+
+echo "=== FINAL LOCAL/GITHUB IDENTITY ==="
 LOCAL_SHA="$(git rev-parse HEAD)"
 REMOTE_SHA="$(git rev-parse origin/main)"
 printf 'LOCAL_SHA=%s\nREMOTE_MAIN_SHA=%s\n' "$LOCAL_SHA" "$REMOTE_SHA"
