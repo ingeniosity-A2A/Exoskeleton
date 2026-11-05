@@ -67,7 +67,7 @@ export class QuackApply {
         await transaction.run('DELETE FROM atomic_tweens WHERE molecule_id = ?', [moleculeId]);
       }
       for (const operation of envelope.ops) {
-        await this.applyInsert(transaction, envelope.source_id, operation);
+        await this.applyInsert(transaction, operation);
       }
     });
 
@@ -110,12 +110,11 @@ export class QuackApply {
       return;
     }
 
-    await this.applyInsert(transaction, 'source', operation);
+    await this.applyInsert(transaction, operation);
   }
 
   private async applyInsert(
     transaction: DbTx,
-    sourceId: string,
     operation: QuackOp,
   ): Promise<void> {
     if (!operation.tween_id || operation.start_time_ms == null
