@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS atomic_tweens (
   tween_atom_id UUID PRIMARY KEY,
   stream_id UUID NOT NULL,
   schema_version USMALLINT NOT NULL,
-  generation UBIGINT NOT NULL,
+  generation UBIGINT NOT NULL CHECK (generation > 0),
   predecessor_id UUID,
   successor_id UUID,
   capability_id TEXT NOT NULL,
@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS atomic_tweens (
   execution_receipt_ref TEXT,
   recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CHECK (end_unix_micros >= start_unix_micros),
+  UNIQUE (stream_id, generation),
   CHECK (
     (compact_intent IS NULL AND tokenizer_id IS NULL AND token_count IS NULL)
     OR (compact_intent IS NOT NULL AND tokenizer_id IS NOT NULL AND token_count = 53)
