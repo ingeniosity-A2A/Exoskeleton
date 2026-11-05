@@ -227,3 +227,11 @@ Every future agent, contributor, or engineering session must:
 - It excludes QAG_MemBrain and the retired A2A Exoskeleton architecture.
 
 **The engineering objective is the best correct, secure, durable, measurable system as a whole—not the fastest isolated component.**
+
+
+## 11. Transport-plane extension — Rustunnel
+
+Rustunnel is an optional, independently authenticated transport capability in the Exoskeleton network/service-exposure plane. It is not a truth layer, durable event bus, database protocol, or authority. It complements rather than replaces Tailscale, DuckDB Quack, or the application replication outbox. Its standard HTTP/TCP path uses separate control/data WebSockets and yamux multiplexing; its P2P feature can attempt UDP hole punching and QUIC with relay fallback. Proxy copy operations mean the standard tunnel path must not be presumed zero-copy.
+
+The full capability, integration boundaries, security gates, candidate uses, benchmark matrix, and unverified deployment status are recorded in [RUSTUNNEL_TRANSPORT_ARCHITECTURE_AUDIT_2026-11-05.md](RUSTUNNEL_TRANSPORT_ARCHITECTURE_AUDIT_2026-11-05.md). All Rustunnel integration work must read that audit before changing transport or network code.
+
