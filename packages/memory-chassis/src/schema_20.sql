@@ -83,6 +83,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_execution_metrics
 
 CREATE TABLE IF NOT EXISTS quack_outbox (
   seq             BIGINT PRIMARY KEY,
+  tween_id        TEXT,
   molecule_id     TEXT NOT NULL,
   target_property TEXT NOT NULL,
   op              TEXT NOT NULL CHECK (op IN ('insert','truncate','purge')),
@@ -147,40 +148,37 @@ CREATE INDEX IF NOT EXISTS idx_dream_falsifiability
 CREATE TRIGGER tg_outbox_insert AFTER INSERT ON atomic_tweens
 BEGIN
   INSERT INTO quack_outbox
-    (seq, molecule_id, target_property, op,
+    (seq, tween_id, molecule_id, target_property, op,
      start_time_ms, duration_ms, start_value, end_value,
      easing_code_id, generation)
   VALUES
-    (nextval('quack_seq'), NEW.molecule_id, NEW.target_property, 'insert',
+    (nextval('quack_seq'), NEW.tween_id, NEW.molecule_id, NEW.target_property, 'insert',
      NEW.start_time_ms, NEW.duration_ms, NEW.start_value, NEW.end_value,
-     NEW.easing_code_id,
-     COALESCE(TRY_CAST(current_setting('ava.generation') AS BIGINT), 0));
+     NEW.easing_code_id, NEW.orchestrator_generation_id);
 END;
 
 CREATE TRIGGER tg_outbox_truncate AFTER UPDATE ON atomic_tweens
 BEGIN
   INSERT INTO quack_outbox
-    (seq, molecule_id, target_property, op,
+    (seq, tween_id, molecule_id, target_property, op,
      start_time_ms, duration_ms, start_value, end_value,
      easing_code_id, generation)
   VALUES
-    (nextval('quack_seq'), NEW.molecule_id, NEW.target_property, 'truncate',
+    (nextval('quack_seq'), NEW.tween_id, NEW.molecule_id, NEW.target_property, 'truncate',
      NEW.start_time_ms, NEW.duration_ms, NEW.start_value, NEW.end_value,
-     NEW.easing_code_id,
-     COALESCE(TRY_CAST(current_setting('ava.generation') AS BIGINT), 0));
+     NEW.easing_code_id, NEW.orchestrator_generation_id);
 END;
 
 CREATE TRIGGER tg_outbox_purge AFTER DELETE ON atomic_tweens
 BEGIN
   INSERT INTO quack_outbox
-    (seq, molecule_id, target_property, op,
+    (seq, tween_id, molecule_id, target_property, op,
      start_time_ms, duration_ms, start_value, end_value,
      easing_code_id, generation)
   VALUES
-    (nextval('quack_seq'), OLD.molecule_id, OLD.target_property, 'purge',
+    (nextval('quack_seq'), OLD.tween_id, OLD.molecule_id, OLD.target_property, 'purge',
      OLD.start_time_ms, OLD.duration_ms, OLD.start_value, OLD.end_value,
-     OLD.easing_code_id,
-     COALESCE(TRY_CAST(current_setting('ava.generation') AS BIGINT), 0));
+     OLD.easing_code_id, OLD.orchestrator_generation_id);
 END;
 
 COMMIT;
