@@ -27,7 +27,7 @@ impl TurboVecProjection {
         k: usize,
         authorized_atom_ids: &[u64],
     ) -> Result<(Vec<f32>, Vec<u64>), SearchError> {
-        self.index.search_with_allowlist(query_vectors, k, authorized_atom_ids)
+        self.index.search_with_allowlist(query_vectors, k, Some(authorized_atom_ids))
     }
 
     pub fn prepare(&self) { self.index.prepare(); }
