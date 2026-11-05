@@ -87,17 +87,22 @@ export class DreamRSI {
     const simById = new Map(hits.map((h) => [h.blockId, h.score]));
 
     const q = await this.ledger.query(`
-      SELECT l.transaction_id AS analog_tween_id,
-             l.capability_name AS analog_molecule_id,
+      SELECT t.tween_id AS analog_tween_id,
+             t.molecule_id AS analog_molecule_id,
              t.target_property AS target_property,
              t.end_value AS end_value,
              l.eval_score AS eval_score,
              b.block_id AS block_id
         FROM turboquant_blocks b
-        JOIN atomic_tweens t ON t.molecule_id = b.molecule_id
+        JOIN tween_blocks tb ON tb.block_id = b.block_id
+        JOIN atomic_tweens t ON t.tween_id = tb.tween_id
         JOIN embedded_skill_execution_ledger l
              ON l.orchestrator_generation_id = t.orchestrator_generation_id
        WHERE b.block_id IN (${blockIds})
+         AND l.capability_name = '${capabilityClass.replace(/'/g, "''")}'
+       QUALIFY ROW_NUMBER() OVER (
+         PARTITION BY t.tween_id ORDER BY l.created_at DESC
+       ) = 1
        ORDER BY l.eval_score DESC
        LIMIT 32`);
 
