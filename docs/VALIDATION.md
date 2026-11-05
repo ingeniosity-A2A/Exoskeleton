@@ -65,3 +65,10 @@ Result: <concise output and artifact link>
 ```
 
 Promote to `[V]` only when the explicit acceptance criteria and independent verification are complete.
+
+
+## Kinetic suite runner
+
+The reproducible runner is present at `scripts/kinetic_suite.py`; the native microbenchmark is `packages/substrate-native/benches/substrate.rs`. The FreeBuff handoff is `docs/FREEBUFF_EXECUTION_HANDOFF.md`.
+
+These are **[C] implemented test orchestration and native microbenchmark code**. No execution output is recorded here. The full Docling/TableFormer, TurboVec, holographic, trained DFM, Rustunnel, Hugging Face corpus, and physical 5G arms remain blocked until their concrete adapters, pinned corpus/model, endpoints, and device evidence are supplied. Do not promote these to [M] or [V] until the runner artifacts exist and acceptance criteria pass.
