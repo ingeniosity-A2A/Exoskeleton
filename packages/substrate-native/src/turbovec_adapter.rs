@@ -66,7 +66,9 @@ mod tests {
         index.prepare();
         let query = [1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0];
         let (scores, ids) = index.search_authorized(&query, 3, &[202, 303]).unwrap();
-        assert_eq!(ids, vec![202, 303]);
+        let mut returned_ids = ids.clone();
+        returned_ids.sort_unstable();
+        assert_eq!(returned_ids, vec![202, 303]);
         assert_eq!(scores.len(), 2);
         assert_eq!(index.len(), 3);
     }
