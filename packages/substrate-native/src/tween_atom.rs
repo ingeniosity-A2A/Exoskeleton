@@ -74,6 +74,9 @@ pub enum TweenAtomError {
     ExecutionBeforeAcceptance,
     MissingExecutionReceipt,
     GenerationOverflow,
+    ZeroGeneration,
+    EmptyIdentity,
+    MissingSourceReferences,
 }
 
 impl fmt::Display for TweenAtomError {
@@ -86,6 +89,11 @@ impl TweenAtom {
         if self.schema_version != TWEENATOM_SCHEMA_VERSION {
             return Err(TweenAtomError::UnsupportedSchema(self.schema_version));
         }
+        if self.generation == 0 { return Err(TweenAtomError::ZeroGeneration); }
+        if self.id.0.iter().all(|b| *b == 0) || self.stream_id.0.iter().all(|b| *b == 0) {
+            return Err(TweenAtomError::EmptyIdentity);
+        }
+        if self.source_refs.is_empty() { return Err(TweenAtomError::MissingSourceReferences); }
         for (field, value) in [
             ("capability_id", self.capability_id.as_str()),
             ("intent_kind", self.intent_kind.as_str()),
@@ -120,7 +128,7 @@ impl TweenAtom {
             && self.authority_state != AuthorityState::Accepted {
             return Err(TweenAtomError::ExecutionBeforeAcceptance);
         }
-        if self.execution_state == ExecutionState::Succeeded
+        if matches!(self.execution_state, ExecutionState::Succeeded | ExecutionState::Compensated)
             && self.execution_receipt_ref.as_deref().unwrap_or("").trim().is_empty() {
             return Err(TweenAtomError::MissingExecutionReceipt);
         }
