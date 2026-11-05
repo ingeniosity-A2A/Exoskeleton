@@ -47,6 +47,10 @@ Exoskeleton/
 The substrate-native crate exports experimental modules for DFM promotion metadata, safety-constrained candidate selection, weighted neighbor updates, and digital packet aggregation. These are not a trained DFM model, a formal distributed-convergence implementation, or physical OTA-C. See the implementation note and validation dock before relying on them.
 
 
+## Android device execution boundary
+
+- [Android Device and Inference Runtime Boundary](docs/ANDROID_DEVICE_INFERENCE_RUNTIME_BOUNDARY.md) — the S26 Ultra is the physical ARM64 Android execution host, not ONNX Runtime. Inference runtimes are optional software adapters; GPU/NPU use requires target-device evidence.
+
 ## Kinetic intelligence execution
 
 - [Kinetic Intelligence Retrieval Architecture and Benchmark](docs/KINETIC_INTELLIGENCE_RETRIEVAL_ARCHITECTURE_AND_BENCHMARK_2026-11-05.md)
