@@ -11,7 +11,8 @@ Read in order:
 2. `docs/SYSTEM_MEMORY_SOURCE_OF_TRUTH_AND_OPTIMIZATION_2026-11-05.md`
 3. `docs/RUSTUNNEL_TRANSPORT_ARCHITECTURE_AUDIT_2026-11-05.md`
 4. `docs/KINETIC_INTELLIGENCE_RETRIEVAL_ARCHITECTURE_AND_BENCHMARK_2026-11-05.md`
-5. `docs/VALIDATION.md`
+5. `docs/TWEENATOM_STATE_CARRYING_CONTRACT.md`
+6. `docs/VALIDATION.md`
 
 Do not alter Manifesto canon. Do not use QAG_MemBrain or the retired A2A Exoskeleton architecture. Do not promote REV.IKE to authority. Do not introduce Arrow as mandatory. Do not report synthetic data as a real corpus benchmark.
 
@@ -28,7 +29,7 @@ git rev-parse HEAD
 python3 scripts/kinetic_suite.py --profile core
 ```
 
-The runner executes Rust formatting, Rust tests/all targets, the native mailbox/packed-arena microbench, and existing pnpm build/typecheck commands. It also applies `schema_20.sql` if the Python DuckDB module is installed.
+The runner executes Rust formatting, Rust library tests (including the TweenAtom invariants and optional TurboVec adapter), native mailbox/packed-arena and TurboVec microbenchmarks, and existing pnpm build/typecheck commands. If the Python DuckDB module is installed, it applies `schema_20.sql`, `schema_kinetic.sql`, and `schema_tween_atom.sql` in order.
 
 ## 3. Execute full integration preflight
 
