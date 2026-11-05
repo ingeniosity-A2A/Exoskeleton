@@ -53,8 +53,20 @@ export class DreamRSI {
   ): Promise<DreamResult> {
     const t0 = performance.now();
     const sessionId = crypto.randomUUID();
+    if (signatureCodes.byteLength === 0) throw new Error('dream signature must not be empty');
+    if (!Number.isSafeInteger(seed)) throw new Error('dream seed must be a safe integer');
 
-    const hits = this.vectors.search(signatureCodes, 16);
+    const rawHits = this.vectors.search(signatureCodes, 16);
+    const hitById = new Map<number, number>();
+    for (const hit of rawHits) {
+      if (!Number.isSafeInteger(hit.blockId) || hit.blockId < 0
+          || !Number.isFinite(hit.score) || hit.score < 0 || hit.score > 1) {
+        throw new Error('TurboVec returned an invalid block ID or similarity score');
+      }
+      const previous = hitById.get(hit.blockId);
+      if (previous === undefined || hit.score > previous) hitById.set(hit.blockId, hit.score);
+    }
+    const hits = [...hitById].map(([blockId, score]) => ({ blockId, score }));
     if (hits.length < MIN_ANALOGS) {
       this.trace({
         event: 'dream_fallback',
@@ -95,7 +107,7 @@ export class DreamRSI {
       target_property: String(r.target_property),
       end_value: Number(r.end_value),
       eval_score: Number(r.eval_score),
-      similarity: simById.get(Number(r.block_id)) ?? 0.5,
+      similarity: simById.get(Number(r.block_id)) ?? 0,
     }));
 
     if (analogs.length < MIN_ANALOGS) {
@@ -156,7 +168,14 @@ export class DreamRSI {
     );
     const flat = amplitudes.every((a) => Math.abs(a - amplitudes[0]!) < FLAT_EPS);
     const chosenIdx = flat ? 0 : this.paths.collapse(amplitudes, seed);
-    const chosen = candidates[chosenIdx]!;
+    if (!Number.isInteger(chosenIdx) || chosenIdx < 0 || chosenIdx >= candidates.length) {
+      throw new Error('PathSimulator returned an out-of-range candidate index');
+    }
+    const chosen = candidates[chosenIdx];
+    if (!chosen || !Number.isFinite(chosen.replay_score)
+        || chosen.replay_score < 0 || chosen.replay_score > 1) {
+      throw new Error('Dream-RSI selected an invalid candidate score');
+    }
     const predictedScore = chosen.replay_score;
 
     await this.ledger.query('BEGIN TRANSACTION');
@@ -224,6 +243,12 @@ export class DreamRSI {
     actualScore: number,
     errorThreshold = 0.25,
   ): Promise<{ error: number; modelFalsified: boolean }> {
+    if (!Number.isFinite(actualScore) || actualScore < 0 || actualScore > 1) {
+      throw new Error('actualScore must be finite and in [0, 1]');
+    }
+    if (!Number.isFinite(errorThreshold) || errorThreshold < 0) {
+      throw new Error('errorThreshold must be finite and non-negative');
+    }
     const sid = sessionId.replace(/'/g, "''");
     await this.ledger.query(`
       UPDATE dream_sessions
@@ -238,8 +263,10 @@ export class DreamRSI {
     const row = rowQ.toArray()[0] as
       | { prediction_error?: number; capability_class?: string }
       | undefined;
-    const error = Number(row?.prediction_error ?? 0);
-    const cls = String(row?.capability_class ?? 'generic').replace(/'/g, "''");
+    if (!row) throw new Error(`dream session not found: ${sessionId}`);
+    const error = Number(row.prediction_error);
+    if (!Number.isFinite(error)) throw new Error('dream session has no finite prediction error');
+    const cls = String(row.capability_class ?? 'generic').replace(/'/g, "''");
 
     const rollQ = await this.ledger.query(`
       SELECT AVG(prediction_error) AS e FROM (
