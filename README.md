@@ -47,3 +47,8 @@ Related authority:
 | **Ava-007** | Sole actor | Cybernetic-Ava007 |
 | **REV.IKE** | Read-only lens / catalyst | Identity preserved; docs live with Cybernetic-Ava007 |
 | **Exoskeleton** | Structural interface, capability layer, Grants surface, memory chassis | This repository |
+
+## Memory system
+
+- [Memory System Source Truth — 2026-11-05](docs/MEMORY_SYSTEM_SOURCE_TRUTH_2026-11-05.md) records the active memory layers, implementation inventory, ownership boundaries, and validation gaps.
+- [Layer 0 Memory Plane](docs/LAYER_0_MEMORY_PLANE.md) and [Vector Core](docs/VECTOR_CORE.md) define the native mailbox and vector integration constraints.
