@@ -11,8 +11,12 @@ path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-# turbovec: https://github.com/RyanCodrai/turbovec — integrate when FFI surface is pinned
-# turbovec = { git = "https://github.com/RyanCodrai/turbovec" }
+# RyanCodrai TurboVec — pinned release; opt-in until target builds are verified.
+turbovec = { version = "=1.1.2", optional = true }
+
+[features]
+default = []
+turbovec = ["dep:turbovec"]
 
 [dev-dependencies]
 
