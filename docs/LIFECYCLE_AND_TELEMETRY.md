@@ -84,7 +84,7 @@ runs, accuracy figures are deterministic.
 | Gear ratio identified from plant output | 1.500000000000, gear B opposes gear A |
 | Alignment period | 720 deg of gear A (1080 deg of gear B) |
 | Discrete error eigenvalues | 0.9 at 1/60 s, 0.5 at 0.25 s (inside the unit circle) |
-| Lifecycle cost per observer step | p50 0.007-0.011 ms, +0.003 ms over unmediated registry.invoke |
+| Lifecycle cost per observer step | p50 0.009538-0.016331 ms, +0.013676 ms over unmediated registry.invoke |
 
 Accuracy criteria (0.1 deg position, 0.1 deg/s velocity) are **not** all met. The
 constant-velocity residual reproduces the previously recorded -0.36850756 deg and

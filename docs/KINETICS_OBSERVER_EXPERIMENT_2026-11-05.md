@@ -255,7 +255,7 @@ telemetry. There is no standalone measurement loop, no parallel Python runtime a
 no direct model call treated as an execution.
 
 Command: `node packages/capabilities/bench/run-kinetics-bench.mjs`
-Artifact: `packages/capabilities/bench/results/2026-11-05T10-32-23-694Z-911be8655b88-kinetics.json`
+Artifact: `packages/capabilities/bench/results/kinetics-observer.json`
 
 | Scenario | Final position error | Final velocity error | Worst transient |
 |---|---:|---:|---:|
@@ -289,7 +289,7 @@ Findings:
 5. Rejecting intervals above 0.25 s is safe (nothing is integrated) but leaves an
    uncorrected state error proportional to the motion skipped, with no explicit
    re-acquisition path. The jitter scenario shows this directly.
-6. The lifecycle adds ~0.003 ms p50 per observer step over an unmediated
+6. The lifecycle adds ~0.013676 ms p50 per observer step over an unmediated
    `registry.invoke` of the same recurrence, and the observer's numeric output is
    identical to bit level through both paths.
 
