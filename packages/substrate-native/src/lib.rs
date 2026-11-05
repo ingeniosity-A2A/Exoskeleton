@@ -11,6 +11,8 @@ pub mod dfm_parametric;
 pub mod superiorization;
 pub mod consensus;
 pub mod ota_computation;
+#[cfg(feature = "turbovec")]
+pub mod turbovec_adapter;
 
 pub use mailbox_ingest::{publish_packed_block, snapshot_for_ingest, PayloadHeader, HEADER_LEN};
 pub use memory_plane::{SharedVectorMailbox, RING_LEN, SLOT_CAP};
