@@ -26,10 +26,16 @@ cd Exoskeleton
 git checkout main
 git pull --ff-only origin main
 git rev-parse HEAD
+
+cargo fmt --manifest-path packages/substrate-native/Cargo.toml -- --check
+cargo test --manifest-path packages/substrate-native/Cargo.toml --features turbovec
+cargo bench --manifest-path packages/substrate-native/Cargo.toml --bench substrate --features turbovec
+cargo bench --manifest-path packages/substrate-native/Cargo.toml --bench turbovec --features turbovec
+
 python3 scripts/kinetic_suite.py --profile core
 ```
 
-The runner executes Rust formatting, Rust library tests (including the TweenAtom invariants and optional TurboVec adapter), native mailbox/packed-arena and TurboVec microbenchmarks, and existing pnpm build/typecheck commands. If the Python DuckDB module is installed, it applies `schema_20.sql`, `schema_kinetic.sql`, and `schema_tween_atom.sql` in order.
+The runner executes Rust formatting, all package tests (including the TweenAtom invariants and optional TurboVec adapter), native mailbox/packed-arena and TurboVec microbenchmarks, and existing pnpm build/typecheck commands. If the Python DuckDB module is installed, it applies `schema_20.sql`, `schema_kinetic.sql`, and `schema_tween_atom.sql` in order. The explicit Cargo commands above are also required so FreeBuff can preserve each command's raw output independently.
 
 ## 3. Execute full integration preflight
 
