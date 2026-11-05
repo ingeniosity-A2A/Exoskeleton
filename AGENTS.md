@@ -11,7 +11,8 @@ Before changing architecture, memory, persistence, transport, synchronization, p
 5. [Memory subsystem feed integration](docs/MEMORY_SUBSYSTEM_FEED_INTEGRATION_2026-11-05.md), [patch status](docs/MEMORY_SUBSYSTEM_PATCH_STATUS_2026-11-05.md), and [validation dock](docs/VALIDATION.md).
 6. [Rustunnel Transport Architecture Audit](docs/RUSTUNNEL_TRANSPORT_ARCHITECTURE_AUDIT_2026-11-05.md).
 7. [Kinetic Intelligence Retrieval Architecture and Benchmark Contract](docs/KINETIC_INTELLIGENCE_RETRIEVAL_ARCHITECTURE_AND_BENCHMARK_2026-11-05.md).
-8. [FreeBuff execution handoff](docs/FREEBUFF_EXECUTION_HANDOFF.md) before running the kinetic suite.
+8. [TweenAtom State-Carrying Contract](docs/TWEENATOM_STATE_CARRYING_CONTRACT.md).
+9. [FreeBuff execution handoff](docs/FREEBUFF_EXECUTION_HANDOFF.md) before running the kinetic suite.
 
 These are mandatory engineering inputs, not optional background reading. Inspect current `main` HEAD and actual source before every change. Chat summaries, old trees, stale branches, and prior assistant descriptions are not implementation evidence.
 
