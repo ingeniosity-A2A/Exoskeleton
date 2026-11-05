@@ -101,18 +101,21 @@ def main() -> int:
             steps.append({"name": "javascript_workspace", "status": "blocked", "reason": "pnpm not installed"})
 
     if env["optional_python_modules"]["duckdb"]:
-        schema = ROOT / "packages" / "memory-chassis" / "src" / "schema_20.sql"
+        schemas = [
+            ROOT / "packages" / "memory-chassis" / "src" / "schema_20.sql",
+            ROOT / "packages" / "memory-chassis" / "src" / "schema_kinetic.sql",
+            ROOT / "packages" / "memory-chassis" / "src" / "schema_tween_atom.sql",
+        ]
         code = (
             "import duckdb,sys; "
             "c=duckdb.connect(':memory:'); "
             "print('duckdb_version='+duckdb.__version__); "
-            "c.execute(open(sys.argv[1],encoding='utf-8').read()); "
-            "print('schema_20_apply=PASS')"
+            "[(c.execute(open(p,encoding='utf-8').read()),print('schema_apply=PASS:'+p)) for p in sys.argv[1:]]"
         )
-        steps.append(run_step("duckdb_schema_20", [sys.executable, "-c", code, str(schema)], ROOT, 300))
+        steps.append(run_step("duckdb_all_memory_schemas", [sys.executable, "-c", code, *map(str, schemas)], ROOT, 300))
     else:
-        steps.append({"name": "duckdb_schema_20", "status": "blocked",
-                      "reason": "Python duckdb module not installed; install the pinned DuckDB 2.0 runtime before schema validation."})
+        steps.append({"name": "duckdb_all_memory_schemas", "status": "blocked",
+                      "reason": "Python duckdb module not installed; install the pinned DuckDB 2.0 runtime before applying schema_20.sql, schema_kinetic.sql and schema_tween_atom.sql."})
 
     if args.profile == "full":
         for module, label in (("docling", "docling_tableformer_ingestion"),
