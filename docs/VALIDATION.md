@@ -33,6 +33,7 @@
 | Quack recovery | process interruption, replay, idempotency and reconciliation | [R] |
 | Rev.Ike intake | source, normalization, provenance and grant tests | [R] |
 | Capability lifecycle | authorization, provider selection, timeout, cancellation, release | [R] |
+| Android device inference | exact device/build, runtime/provider versions, target-side execution proof and fallback | [P] |
 | Observability | schema, propagation, redaction and exporter-failure tests | [R] |
 
 ## Zero-copy benchmark requirements
