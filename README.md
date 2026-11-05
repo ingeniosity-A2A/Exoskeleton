@@ -45,3 +45,13 @@ Exoskeleton/
 ## Research integration modules
 
 The substrate-native crate exports experimental modules for DFM promotion metadata, safety-constrained candidate selection, weighted neighbor updates, and digital packet aggregation. These are not a trained DFM model, a formal distributed-convergence implementation, or physical OTA-C. See the implementation note and validation dock before relying on them.
+
+
+## Kinetic intelligence execution
+
+- [Kinetic Intelligence Retrieval Architecture and Benchmark](docs/KINETIC_INTELLIGENCE_RETRIEVAL_ARCHITECTURE_AND_BENCHMARK_2026-11-05.md)
+- [FreeBuff execution handoff](docs/FREEBUFF_EXECUTION_HANDOFF.md)
+- Run the reproducible suite: `python3 scripts/kinetic_suite.py --profile full`
+- Core native tests and microbenchmarks: `python3 scripts/kinetic_suite.py --profile core`
+
+The runner records environment, exact commands, output, and blocked integrations under `artifacts/kinetic/`. It does not fabricate retrieval scores or implicitly download models. A completed core run is not full architecture acceptance.
