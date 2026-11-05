@@ -1,0 +1,680 @@
+{
+  "schema": "exoskeleton.kinetics.bench/1.0",
+  "generated_at": "2026-11-05T10:42:12.563Z",
+  "plane": "kinetics.observer",
+  "executed_through": "CapabilityLifecycle (validate/resolve/allocate/execute/observe/validate_outcome/release/complete)",
+  "commit_sha": "84c8adbfa404171af432f08e94eb91c8caf549c9",
+  "worktree_dirty": false,
+  "worktree_state_sampled": "before this run wrote its artifact",
+  "environment": {
+    "os": "Linux 6.1.102",
+    "platform": "linux",
+    "arch": "x64",
+    "cpu_model": "19/01",
+    "cpu_count": 2,
+    "total_memory_bytes": 4105523200,
+    "node_version": "v26.13.0",
+    "v8_version": "14.6.202.34-node.40"
+  },
+  "command": "node packages/capabilities/bench/run-kinetics-bench.mjs",
+  "subject": {
+    "gear": {
+      "TEETH_A": 24,
+      "TEETH_B": 16,
+      "RATIO": 1.5,
+      "RA": 48,
+      "RB": 32,
+      "D": 80,
+      "PHI0": 0,
+      "alignment_period_deg_a": 720,
+      "teeth_gcd": 8
+    },
+    "observer": {
+      "L1": 12,
+      "L2": 36,
+      "MAX_SUBSTEP_SEC": 0.01,
+      "MAX_FRAME_SEC": 0.25
+    },
+    "thresholds": {
+      "position_deg": 0.1,
+      "velocity_deg_per_s": 0.1
+    },
+    "plant_law": "phi = PHI0 - theta * RATIO",
+    "observer_recurrence": "estTheta += (estOmega + L1*error)*h; estOmega += L2*error*h",
+    "measurement_model": "noiseless gear A angle; no sensor noise or dropout is modelled"
+  },
+  "manifold": {
+    "law_samples": [
+      {
+        "theta": 0,
+        "phi": 0
+      },
+      {
+        "theta": 5,
+        "phi": -7.5
+      },
+      {
+        "theta": 90,
+        "phi": -135
+      },
+      {
+        "theta": 180,
+        "phi": -270
+      },
+      {
+        "theta": 360,
+        "phi": -540
+      },
+      {
+        "theta": 540,
+        "phi": -810
+      },
+      {
+        "theta": 720,
+        "phi": -1080
+      },
+      {
+        "theta": -360,
+        "phi": 540
+      }
+    ],
+    "identified_ratio": 1.5,
+    "identified_ratio_direction": "gear_b_opposes_gear_a",
+    "ratio_sample_count": 144,
+    "alignment_table": [
+      {
+        "theta": 0,
+        "phi": 0,
+        "gear_a_revolutions": 0,
+        "gear_b_revolutions": 0,
+        "both_marked_teeth_aligned": true
+      },
+      {
+        "theta": 360,
+        "phi": -540,
+        "gear_a_revolutions": 1,
+        "gear_b_revolutions": 1.5,
+        "both_marked_teeth_aligned": false
+      },
+      {
+        "theta": 719,
+        "phi": -1078.5,
+        "gear_a_revolutions": 1.9972222222222222,
+        "gear_b_revolutions": 2.995833333333333,
+        "both_marked_teeth_aligned": false
+      },
+      {
+        "theta": 720,
+        "phi": -1080,
+        "gear_a_revolutions": 2,
+        "gear_b_revolutions": 3,
+        "both_marked_teeth_aligned": true
+      },
+      {
+        "theta": 721,
+        "phi": -1081.5,
+        "gear_a_revolutions": 2.0027777777777778,
+        "gear_b_revolutions": 3.004166666666667,
+        "both_marked_teeth_aligned": false
+      },
+      {
+        "theta": -720,
+        "phi": 1080,
+        "gear_a_revolutions": -2,
+        "gear_b_revolutions": -3,
+        "both_marked_teeth_aligned": true
+      }
+    ],
+    "discrete_stability": {
+      "continuous_characteristic_polynomial": "s^2 + 12s + 36 = (s + 6)^2",
+      "nominal_dt_sec": 0.016666666666666666,
+      "nominal": {
+        "kind": "real",
+        "values": [
+          0.9,
+          0.9
+        ],
+        "max_magnitude": 0.9
+      },
+      "max_accepted_frame_sec": 0.25,
+      "max_accepted_frame": {
+        "kind": "real",
+        "values": [
+          -0.5,
+          -0.5
+        ],
+        "max_magnitude": 0.5
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "name": "stationary_convergence",
+      "purpose": "initialization from first measurement, then zero-position-error convergence at rest",
+      "frames": 600,
+      "lifecycle_counters": {
+        "allocations": 600,
+        "releases": 600
+      },
+      "applied_frames": 600,
+      "rejected_frames": 0,
+      "rejection_reasons": [],
+      "errors": [],
+      "accuracy": {
+        "final_position_error_deg": 0,
+        "max_abs_position_error_deg": 0,
+        "rms_position_error_deg": 0,
+        "final_velocity_error_deg_per_s": 0,
+        "steady_state_settle_frame": 1,
+        "max_abs_error_context": {
+          "frame": 0,
+          "theta": 10,
+          "est_theta": 10,
+          "est_omega": 0,
+          "dt_sec": 0.016666666666666666,
+          "error_deg": 0
+        },
+        "final_context": {
+          "frame": 599,
+          "theta": 10,
+          "est_theta": 10,
+          "est_omega": 0
+        }
+      },
+      "thresholds": {
+        "position_deg": 0.1,
+        "velocity_deg_per_s": 0.1
+      },
+      "verdict": {
+        "position_within_threshold": true,
+        "velocity_within_threshold": true,
+        "max_abs_position_within_threshold": true
+      },
+      "latency": {
+        "lifecycle_execute": {
+          "n": 600,
+          "mean_ms": 0.038882,
+          "min_ms": 0.004658,
+          "p50_ms": 0.016331,
+          "p95_ms": 0.052569,
+          "p99_ms": 0.531727,
+          "max_ms": 4.745057
+        },
+        "handler_only": {
+          "n": 600,
+          "mean_ms": 0.021402,
+          "min_ms": 0.002013,
+          "p50_ms": 0.006643,
+          "p95_ms": 0.028063,
+          "p99_ms": 0.095369,
+          "max_ms": 4.73091
+        }
+      },
+      "latency_delta_vs_unmediated": {
+        "p50_ms": 0.013676,
+        "note": "lifecycle.execute p50 minus registry.invoke p50 for the same observer recurrence"
+      }
+    },
+    {
+      "name": "constant_velocity_tracking",
+      "purpose": "type-2 tracking of a 30 deg/s ramp; this is the criterion the recorded diagnostic failed",
+      "frames": 600,
+      "lifecycle_counters": {
+        "allocations": 600,
+        "releases": 600
+      },
+      "applied_frames": 600,
+      "rejected_frames": 0,
+      "rejection_reasons": [],
+      "errors": [],
+      "accuracy": {
+        "final_position_error_deg": -0.368508,
+        "max_abs_position_error_deg": 1.519501,
+        "rms_position_error_deg": 0.42618,
+        "final_velocity_error_deg_per_s": 0.019724,
+        "steady_state_settle_frame": 600,
+        "max_abs_error_context": {
+          "frame": 9,
+          "theta": 14.5,
+          "est_theta": 12.980499,
+          "est_omega": 7.621889,
+          "dt_sec": 0.016666666666666666,
+          "error_deg": 1.519501
+        },
+        "final_context": {
+          "frame": 599,
+          "theta": 309.5,
+          "est_theta": 309.868508,
+          "est_omega": 29.980276
+        }
+      },
+      "thresholds": {
+        "position_deg": 0.1,
+        "velocity_deg_per_s": 0.1
+      },
+      "verdict": {
+        "position_within_threshold": false,
+        "velocity_within_threshold": true,
+        "max_abs_position_within_threshold": false
+      },
+      "latency": {
+        "lifecycle_execute": {
+          "n": 600,
+          "mean_ms": 0.016551,
+          "min_ms": 0.00529,
+          "p50_ms": 0.010259,
+          "p95_ms": 0.025508,
+          "p99_ms": 0.063519,
+          "max_ms": 2.752641
+        },
+        "handler_only": {
+          "n": 600,
+          "mean_ms": 0.004724,
+          "min_ms": 0.002084,
+          "p50_ms": 0.004118,
+          "p95_ms": 0.009779,
+          "p99_ms": 0.026329,
+          "max_ms": 0.084548
+        }
+      },
+      "latency_delta_vs_unmediated": {
+        "p50_ms": 0.007604,
+        "note": "lifecycle.execute p50 minus registry.invoke p50 for the same observer recurrence"
+      }
+    },
+    {
+      "name": "reversal_tracking",
+      "purpose": "sign reversal at frame 300: recovery of position and velocity after the plant changes direction",
+      "frames": 600,
+      "lifecycle_counters": {
+        "allocations": 600,
+        "releases": 600
+      },
+      "applied_frames": 600,
+      "rejected_frames": 0,
+      "rejection_reasons": [],
+      "errors": [],
+      "accuracy": {
+        "final_position_error_deg": 0.368508,
+        "max_abs_position_error_deg": 3.407509,
+        "rms_position_error_deg": 0.697974,
+        "final_velocity_error_deg_per_s": -0.019724,
+        "steady_state_settle_frame": 600,
+        "max_abs_error_context": {
+          "frame": 308,
+          "theta": 145.5,
+          "est_theta": 148.907509,
+          "est_omega": 14.736498,
+          "dt_sec": 0.016666666666666666,
+          "error_deg": -3.407509
+        },
+        "final_context": {
+          "frame": 599,
+          "theta": 0,
+          "est_theta": -0.368508,
+          "est_omega": -29.980276
+        }
+      },
+      "thresholds": {
+        "position_deg": 0.1,
+        "velocity_deg_per_s": 0.1
+      },
+      "verdict": {
+        "position_within_threshold": false,
+        "velocity_within_threshold": true,
+        "max_abs_position_within_threshold": false
+      },
+      "latency": {
+        "lifecycle_execute": {
+          "n": 600,
+          "mean_ms": 0.025193,
+          "min_ms": 0.005841,
+          "p50_ms": 0.009538,
+          "p95_ms": 0.015569,
+          "p99_ms": 0.05324,
+          "max_ms": 5.476659
+        },
+        "handler_only": {
+          "n": 600,
+          "mean_ms": 0.013743,
+          "min_ms": 0.002504,
+          "p50_ms": 0.004599,
+          "p95_ms": 0.006883,
+          "p99_ms": 0.018434,
+          "max_ms": 5.46606
+        }
+      },
+      "latency_delta_vs_unmediated": {
+        "p50_ms": 0.006883,
+        "note": "lifecycle.execute p50 minus registry.invoke p50 for the same observer recurrence"
+      }
+    },
+    {
+      "name": "frame_interval_variation",
+      "purpose": "deterministic 0.5x-2x frame jitter plus deliberate >0.25 s intervals that must be rejected",
+      "frames": 600,
+      "lifecycle_counters": {
+        "allocations": 600,
+        "releases": 600
+      },
+      "applied_frames": 594,
+      "rejected_frames": 6,
+      "rejection_reasons": [
+        "interval_above_max_frame"
+      ],
+      "errors": [],
+      "accuracy": {
+        "final_position_error_deg": -1.526582,
+        "max_abs_position_error_deg": 6.264617,
+        "rms_position_error_deg": 1.085351,
+        "final_velocity_error_deg_per_s": -12.879891,
+        "steady_state_settle_frame": 600,
+        "max_abs_error_context": {
+          "frame": 486,
+          "theta": 344.836304,
+          "est_theta": 338.571688,
+          "est_omega": 32.260241,
+          "dt_sec": 0.009647458648153891,
+          "error_deg": 6.264617
+        },
+        "final_context": {
+          "frame": 599,
+          "theta": 417.519371,
+          "est_theta": 419.045953,
+          "est_omega": 42.879891
+        }
+      },
+      "thresholds": {
+        "position_deg": 0.1,
+        "velocity_deg_per_s": 0.1
+      },
+      "verdict": {
+        "position_within_threshold": false,
+        "velocity_within_threshold": false,
+        "max_abs_position_within_threshold": false
+      },
+      "latency": {
+        "lifecycle_execute": {
+          "n": 600,
+          "mean_ms": 0.01406,
+          "min_ms": 0.0054,
+          "p50_ms": 0.012164,
+          "p95_ms": 0.023343,
+          "p99_ms": 0.06949,
+          "max_ms": 0.410741
+        },
+        "handler_only": {
+          "n": 600,
+          "mean_ms": 0.006301,
+          "min_ms": 0.002675,
+          "p50_ms": 0.00529,
+          "p95_ms": 0.0107,
+          "p99_ms": 0.035507,
+          "max_ms": 0.100939
+        }
+      },
+      "latency_delta_vs_unmediated": {
+        "p50_ms": 0.009509,
+        "note": "lifecycle.execute p50 minus registry.invoke p50 for the same observer recurrence"
+      }
+    }
+  ],
+  "lag_isolation": {
+    "variants": [
+      {
+        "label": "lag_hold_dt_1_60",
+        "dt_sec": 0.016667,
+        "frames": 600,
+        "measurement_mode": "hold",
+        "final_position_error_deg": -0.368508,
+        "final_velocity_error_deg_per_s": 0.019724,
+        "max_abs_position_error_deg": 1.519501,
+        "equivalent_lag_ms": 12.284,
+        "position_within_threshold": false,
+        "structural_ok": true
+      },
+      {
+        "label": "lag_reconstructed_dt_1_60",
+        "dt_sec": 0.016667,
+        "frames": 600,
+        "measurement_mode": "reconstructed",
+        "final_position_error_deg": -0.25,
+        "final_velocity_error_deg_per_s": 0,
+        "max_abs_position_error_deg": 1.636768,
+        "equivalent_lag_ms": 8.333,
+        "position_within_threshold": false,
+        "structural_ok": true
+      },
+      {
+        "label": "lag_hold_dt_1_120",
+        "dt_sec": 0.008333,
+        "frames": 1200,
+        "measurement_mode": "hold",
+        "final_position_error_deg": -0.25,
+        "final_velocity_error_deg_per_s": 0,
+        "max_abs_position_error_deg": 1.636768,
+        "equivalent_lag_ms": 8.333,
+        "position_within_threshold": false,
+        "structural_ok": true
+      },
+      {
+        "label": "lag_hold_dt_1_240",
+        "dt_sec": 0.004167,
+        "frames": 2400,
+        "measurement_mode": "hold",
+        "final_position_error_deg": -0.125,
+        "final_velocity_error_deg_per_s": 0,
+        "max_abs_position_error_deg": 1.73773,
+        "equivalent_lag_ms": 4.167,
+        "position_within_threshold": false,
+        "structural_ok": true
+      }
+    ],
+    "findings": {
+      "residual_is_velocity_proportional": true,
+      "velocity_proportional_evidence": {
+        "constant_velocity_final_error_deg": -0.368508,
+        "reversal_final_error_deg": 0.368508
+      },
+      "equivalent_lag_ms_by_frame_rate": {
+        "1/60": 12.284,
+        "1/120": 8.333,
+        "1/240": 4.167
+      },
+      "lag_scales_with_frame_interval": true,
+      "lag_ratio_60_over_120": 1.474,
+      "reconstruction_reduces_residual": true,
+      "reconstruction_meets_threshold": false,
+      "reconstruction_residual_ms": 8.333,
+      "conclusion": "The residual is frame-interval dependent and reduced, but not removed, by reconstructing the measurement across the frame; part of it is the one-substep discretisation of a ramp by forward Euler. It is not a stability failure: every discrete eigenvalue stays inside the unit circle.",
+      "caveat": "Reconstruction uses the next measurement and is therefore not an input a sampling sensor supplies at substep time. It isolates a component of the residual; it does not describe deployed behaviour, and it does not by itself establish that any particular frame rate is adequate."
+    }
+  },
+  "unmediated_baseline": {
+    "capability": "kinetics.observer.step.unmediated",
+    "note": "same observer recurrence invoked directly on the registry, bypassing the lifecycle; used only to separate lifecycle cost from handler cost",
+    "latency": {
+      "n": 600,
+      "mean_ms": 0.003853,
+      "min_ms": 0.001923,
+      "p50_ms": 0.002655,
+      "p95_ms": 0.00571,
+      "p99_ms": 0.022743,
+      "max_ms": 0.256773
+    }
+  },
+  "guard_checks": [
+    {
+      "id": "gear.law_exact",
+      "ok": true,
+      "detail": "max |phi + 1.5*theta| = 0"
+    },
+    {
+      "id": "gear.ratio_identified",
+      "ok": true,
+      "detail": "identified magnitude 1.5, gear B direction opposite"
+    },
+    {
+      "id": "gear.alignment_period",
+      "ok": true,
+      "detail": "alignment period 720 deg of gear A"
+    },
+    {
+      "id": "gear.alignment_exact_at_period",
+      "ok": true,
+      "detail": "alignment holds at 720 and not at 719"
+    },
+    {
+      "id": "observer.deterministic",
+      "ok": true,
+      "detail": "600 compared estimates"
+    },
+    {
+      "id": "observer.unmediated_matches_lifecycle",
+      "ok": true,
+      "detail": "lifecycle adds no numeric change to the observer recurrence"
+    },
+    {
+      "id": "guard.unauthorized_denied",
+      "ok": true,
+      "detail": "AUTHORIZATION_DENIED missing grant(s): kinetics.observe"
+    },
+    {
+      "id": "guard.denial_does_not_advance_state",
+      "ok": true,
+      "detail": "observer state untouched after denial"
+    },
+    {
+      "id": "guard.authorized_first_step",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "id": "guard.duplicate_idempotent",
+      "ok": true,
+      "detail": "replayed event reused result and did not advance state"
+    },
+    {
+      "id": "guard.stale_generation_rejected",
+      "ok": true,
+      "detail": "INVALID_INPUT generation: stale generation: 4 < 5"
+    },
+    {
+      "id": "guard.stale_does_not_overwrite",
+      "ok": true,
+      "detail": "newer verified state preserved"
+    },
+    {
+      "id": "guard.oversized_interval_rejected",
+      "ok": true,
+      "detail": "interval above 0.25 s was not integrated"
+    },
+    {
+      "id": "guard.unknown_capability",
+      "ok": true,
+      "detail": "UNKNOWN_CAPABILITY"
+    },
+    {
+      "id": "telemetry.phase_order",
+      "ok": true,
+      "detail": "2400 traces, 0 deviations"
+    },
+    {
+      "id": "telemetry.trace_correlation",
+      "ok": true,
+      "detail": "every event carries its trace and a positive generation"
+    },
+    {
+      "id": "telemetry.event_count",
+      "ok": true,
+      "detail": "expected 8 events per execution"
+    },
+    {
+      "id": "lifecycle.release_every_execution",
+      "ok": true,
+      "detail": "allocations 2400, releases 2400, executions 2400"
+    },
+    {
+      "id": "lifecycle.cleanup_reported",
+      "ok": true,
+      "detail": "cleanup states: released"
+    },
+    {
+      "id": "lifecycle.no_errors",
+      "ok": true,
+      "detail": "0 failed executions"
+    },
+    {
+      "id": "observer.discrete_stability",
+      "ok": true,
+      "detail": "|lambda| nominal 0.9, at 0.25 s 0.5"
+    }
+  ],
+  "telemetry": {
+    "executions": 2400,
+    "events_per_execution": 8,
+    "total_events": 19200,
+    "phase_order": [
+      "validate",
+      "resolve",
+      "allocate",
+      "execute",
+      "observe",
+      "validate_outcome",
+      "release",
+      "complete"
+    ],
+    "sink": "MemoryEventSink (in-memory bounded ring buffer; no external exporter)"
+  },
+  "verdict": {
+    "benchmark_complete": true,
+    "structural_integrity": "PASS",
+    "accuracy_criteria": "FAIL",
+    "accuracy_summary": [
+      {
+        "scenario": "stationary_convergence",
+        "position_within_threshold": true,
+        "velocity_within_threshold": true,
+        "max_abs_position_within_threshold": true
+      },
+      {
+        "scenario": "constant_velocity_tracking",
+        "position_within_threshold": false,
+        "velocity_within_threshold": true,
+        "max_abs_position_within_threshold": false
+      },
+      {
+        "scenario": "reversal_tracking",
+        "position_within_threshold": false,
+        "velocity_within_threshold": true,
+        "max_abs_position_within_threshold": false
+      },
+      {
+        "scenario": "frame_interval_variation",
+        "position_within_threshold": false,
+        "velocity_within_threshold": false,
+        "max_abs_position_within_threshold": false
+      }
+    ],
+    "failing_scenarios": [
+      "constant_velocity_tracking",
+      "reversal_tracking",
+      "frame_interval_variation"
+    ],
+    "note": "structural_integrity gates this runner’s exit code; accuracy_criteria are measured against thresholds fixed before the run and are reported, not tuned."
+  },
+  "planes_not_measured": {
+    "lfm3.inference": "NOT RUN — no LFM3 provider or runtime is available in this environment; no mock inference is substituted.",
+    "memory.mailbox_arrow_duckdb": "NOT RUN — the memory plane is not exercised by this runner.",
+    "hardware.actuation": "NOT RUN — no physical device, sensor, radio or real-time scheduler is present.",
+    "sensor.noise_and_dropout": "NOT RUN — the measurement model is noiseless by construction."
+  },
+  "non_claims": [
+    "Accuracy criteria are criteria for this deterministic, noiseless, simulated plant. They are not sensor-fusion or hardware validation.",
+    "The observer is a simulation subject; a passing threshold does not authorize actuation.",
+    "No zero-copy, Arrow, mailbox, N-API or DuckDB claim is made by this runner.",
+    "GSAP, REV.IKE and LFM3 are not involved in this measurement plane.",
+    "The lag-isolation reconstruction uses the next measurement and is therefore not an input a sampling sensor supplies at substep time; it identifies the residual source, it does not describe deployed behaviour."
+  ],
+  "artifact_path": "packages/capabilities/bench/results/kinetics-observer.json"
+}
