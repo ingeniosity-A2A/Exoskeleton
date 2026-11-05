@@ -2,6 +2,7 @@ import type { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 
 export type QuackOp = {
   seq: number;
+  tween_id: string | null;
   molecule_id: string;
   target_property: string;
   op: 'insert' | 'truncate' | 'purge';
@@ -20,6 +21,8 @@ export type QuackEnvelope = {
   last_seq: number;
   ops: QuackOp[];
   sent_at_ms: number;
+  /** Full replacement snapshot scope. Empty ops is meaningful for an empty molecule. */
+  snapshot_molecules?: string[];
 };
 
 export type QuackAck = { ok: boolean; applied_seq: number; needs_resync?: string[] };
@@ -31,13 +34,13 @@ export interface QuackTransport {
 export class QuackNativeTransport implements QuackTransport {
   constructor(private endpoint: string) {}
   async send(env: QuackEnvelope): Promise<QuackAck> {
-    const res = await fetch(this.endpoint, {
+    const response = await fetch(this.endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(env),
     });
-    if (!res.ok) throw new Error(`quack transport: HTTP ${res.status}`);
-    return res.json() as Promise<QuackAck>;
+    if (!response.ok) throw new Error(`quack transport: HTTP ${response.status}`);
+    return response.json() as Promise<QuackAck>;
   }
 }
 
@@ -49,18 +52,25 @@ export class QuackOutbox {
   private pumping = false;
   private overflowed = false;
   private ackedSeq = 0;
+  private timer: ReturnType<typeof setInterval> | undefined;
 
   constructor(
     private conn: AsyncDuckDBConnection,
     private transport: QuackTransport,
     private sourceId: string,
     private orthogonalSeed: number,
-    private trace: (e: Record<string, unknown>) => void,
+    private trace: (event: Record<string, unknown>) => void,
   ) {}
 
   async start(intervalMs = FLUSH_MS): Promise<void> {
+    if (this.timer) return;
     this.ackedSeq = await this.loadWatermark();
-    setInterval(() => void this.pump(), intervalMs);
+    this.timer = setInterval(() => { void this.pump(); }, intervalMs);
+  }
+
+  stop(): void {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = undefined;
   }
 
   async onCommit(): Promise<void> {
@@ -83,50 +93,47 @@ export class QuackOutbox {
       }
 
       const pending = await this.conn.query(`
-        SELECT * FROM quack_outbox
-        WHERE seq > ${this.ackedSeq}
-        ORDER BY seq ASC LIMIT ${FLUSH_OPS}`);
+        SELECT seq, tween_id, molecule_id, target_property, op,
+               start_time_ms, duration_ms, start_value, end_value,
+               easing_code_id, generation
+          FROM quack_outbox
+         WHERE seq > ${this.ackedSeq}
+         ORDER BY seq ASC LIMIT ${FLUSH_OPS}`);
       if (pending.numRows === 0) return;
 
       const ops = this.arrowToOps(pending);
-      const env: QuackEnvelope = {
+      const envelope: QuackEnvelope = {
         source_id: this.sourceId,
         orthogonal_seed: this.orthogonalSeed,
         first_seq: ops[0]!.seq,
         last_seq: ops[ops.length - 1]!.seq,
         ops,
-        sent_at_ms: performance.now(),
+        sent_at_ms: Date.now(),
       };
 
-      const backoff = [250, 1000, 4000, 16000];
+      const delays = [250, 1000, 4000, 16000];
       for (let attempt = 0; ; attempt++) {
         try {
-          const ack = await this.transport.send(env);
-          if (!ack.ok) throw new Error('remote rejected batch');
+          const ack = await this.transport.send(envelope);
+          if (!ack.ok || ack.applied_seq < envelope.first_seq
+              || ack.applied_seq > envelope.last_seq) {
+            throw new Error('invalid or rejected Quack acknowledgement');
+          }
           this.ackedSeq = Math.max(this.ackedSeq, ack.applied_seq);
           await this.saveWatermark(this.ackedSeq);
           this.trace({
-            event: 'quack_flush',
-            from: env.first_seq,
-            to: env.last_seq,
-            ops: ops.length,
-            rtt_ms: +(performance.now() - env.sent_at_ms).toFixed(2),
-            applied_seq: ack.applied_seq,
+            event: 'quack_flush', from: envelope.first_seq, to: envelope.last_seq,
+            count: ops.length, applied_seq: ack.applied_seq,
           });
           if (ack.needs_resync?.length) await this.snapshotResync(ack.needs_resync);
           break;
-        } catch (err) {
-          if (attempt >= backoff.length - 1) {
-            this.trace({
-              event: 'quack_retry_exhausted',
-              to: env.last_seq,
-              err: String(err),
-            });
+        } catch (error) {
+          if (attempt >= delays.length - 1) {
+            this.trace({ event: 'quack_retry_exhausted', to: envelope.last_seq, error: String(error) });
             return;
           }
-          await new Promise((r) =>
-            setTimeout(r, backoff[attempt]! * (0.8 + Math.random() * 0.4)),
-          );
+          const jitter = 0.8 + Math.random() * 0.4;
+          await new Promise(resolve => setTimeout(resolve, delays[attempt]! * jitter));
         }
       }
     } finally {
@@ -135,71 +142,89 @@ export class QuackOutbox {
   }
 
   private async resync(): Promise<void> {
-    const stale = await this.conn.query(
+    const result = await this.conn.query(
       `SELECT DISTINCT molecule_id FROM quack_outbox WHERE seq > ${this.ackedSeq}`,
     );
-    const ids = stale.toArray().map((r: { molecule_id: string }) => r.molecule_id);
-    this.overflowed = false;
+    const ids = result.toArray().map((row: { molecule_id: string }) => row.molecule_id);
     await this.snapshotResync(ids);
+    this.overflowed = false;
     this.trace({ event: 'quack_resync', molecules: ids.length });
   }
 
   private async snapshotResync(moleculeIds: string[]): Promise<void> {
-    for (const id of moleculeIds) {
-      const set = await this.conn.query(`
-        SELECT * FROM atomic_tweens
-        WHERE molecule_id = '${id.replace(/'/g, "''")}'
-        ORDER BY start_time_ms ASC`);
+    for (const id of [...new Set(moleculeIds)]) {
+      const result = await this.conn.query(`
+        SELECT CAST(-1 AS BIGINT) AS seq, tween_id, molecule_id, target_property,
+               'insert' AS op, start_time_ms, duration_ms, start_value, end_value,
+               easing_code_id, orchestrator_generation_id AS generation
+          FROM atomic_tweens
+         WHERE molecule_id = ${this.sqlString(id)}
+         ORDER BY start_time_ms ASC, tween_id ASC`);
+      const ops = this.arrowToOps(result);
       await this.transport.send({
         source_id: this.sourceId,
         orthogonal_seed: this.orthogonalSeed,
         first_seq: -1,
         last_seq: -1,
-        ops: this.arrowToOps(set).map((o) => ({ ...o, op: 'insert' as const })),
-        sent_at_ms: performance.now(),
+        ops,
+        snapshot_molecules: [id],
+        sent_at_ms: Date.now(),
       });
     }
+  }
+
+  private sqlString(value: string): string {
+    return `'${value.replace(/'/g, "''")}'`;
   }
 
   private arrowToOps(batch: {
     numRows: number;
-    getChildAt: (i: number) => { toArray: () => unknown[] } | null;
+    getChild: (name: string) => { toArray(): unknown[] } | null;
   }): QuackOp[] {
-    const cols = (i: number) => batch.getChildAt(i)?.toArray() ?? [];
-    const n = batch.numRows;
-    const out: QuackOp[] = [];
-    for (let i = 0; i < n; i++) {
-      out.push({
-        seq: Number(cols(0)[i]),
-        molecule_id: cols(1)[i] as string,
-        target_property: cols(2)[i] as string,
-        op: cols(3)[i] as QuackOp['op'],
-        start_time_ms: (cols(4)[i] as number) ?? null,
-        duration_ms: (cols(5)[i] as number) ?? null,
-        start_value: (cols(6)[i] as number) ?? null,
-        end_value: (cols(7)[i] as number) ?? null,
-        easing_code_id: (cols(8)[i] as number) ?? null,
-        generation: Number(cols(9)[i]),
-      });
-    }
-    return out;
+    const column = (name: string) => {
+      const values = batch.getChild(name)?.toArray();
+      if (!values) throw new Error(`Quack batch missing column: ${name}`);
+      if (values.length !== batch.numRows) throw new Error(`Quack column length mismatch: ${name}`);
+      return values;
+    };
+    const seq = column('seq'), tween = column('tween_id'), molecule = column('molecule_id');
+    const property = column('target_property'), op = column('op');
+    const start = column('start_time_ms'), duration = column('duration_ms');
+    const startValue = column('start_value'), endValue = column('end_value');
+    const easing = column('easing_code_id'), generation = column('generation');
+
+    return Array.from({ length: batch.numRows }, (_, i) => ({
+      seq: Number(seq[i]),
+      tween_id: tween[i] == null ? null : String(tween[i]),
+      molecule_id: String(molecule[i]),
+      target_property: String(property[i]),
+      op: String(op[i]) as QuackOp['op'],
+      start_time_ms: start[i] == null ? null : Number(start[i]),
+      duration_ms: duration[i] == null ? null : Number(duration[i]),
+      start_value: startValue[i] == null ? null : Number(startValue[i]),
+      end_value: endValue[i] == null ? null : Number(endValue[i]),
+      easing_code_id: easing[i] == null ? null : Number(easing[i]),
+      generation: Number(generation[i]),
+    }));
   }
 
   private async queueDepth(): Promise<number> {
-    const r = await this.conn.query(
+    const result = await this.conn.query(
       `SELECT COUNT(*)::BIGINT AS n FROM quack_outbox WHERE seq > ${this.ackedSeq}`,
     );
-    return Number(r.toArray()[0].n);
+    return Number(result.toArray()[0]?.n ?? 0);
   }
 
   private async loadWatermark(): Promise<number> {
-    const r = await this.conn.query(`SELECT acked_seq FROM quack_outbox_ack WHERE id = 1`);
-    return Number(r.toArray()[0]?.acked_seq ?? 0);
+    const result = await this.conn.query(
+      'SELECT acked_seq FROM quack_outbox_ack WHERE id = 1',
+    );
+    return Number(result.toArray()[0]?.acked_seq ?? 0);
   }
 
-  private async saveWatermark(s: number): Promise<void> {
+  private async saveWatermark(sequence: number): Promise<void> {
     await this.conn.query(`
-      INSERT INTO quack_outbox_ack (id, acked_seq) VALUES (1, ${s})
+      INSERT INTO quack_outbox_ack (id, acked_seq) VALUES (1, ${sequence})
       ON CONFLICT (id) DO UPDATE SET acked_seq = excluded.acked_seq`);
   }
 }
