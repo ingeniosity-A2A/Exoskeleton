@@ -40,7 +40,7 @@ export class TwinEngineMatrix {
       await connection.query(`
         SET memory_limit = '3GB';
         SET preserve_insertion_order = false;
-        SET temp_directory = ${quoteSql(`${scratch.replace(/'/g, "''")}/duckdb_scratch.tmp`)};
+        SET temp_directory = ${quoteSql(`${scratch}/duckdb_scratch.tmp`)};
       `);
 
       await connection.query('BEGIN TRANSACTION');
