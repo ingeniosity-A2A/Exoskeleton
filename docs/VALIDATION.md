@@ -79,3 +79,14 @@ These are **[C] implemented test orchestration and native microbenchmark code**.
 The reproducible runner is present at `scripts/kinetic_suite.py`; the native microbenchmark is `packages/substrate-native/benches/substrate.rs`. The FreeBuff handoff is `docs/FREEBUFF_EXECUTION_HANDOFF.md`.
 
 These are **[C] implemented test orchestration and native microbenchmark code**. No execution output is recorded here. The full Docling/TableFormer, TurboVec, holographic, trained DFM, Rustunnel, Hugging Face corpus, and physical 5G arms remain blocked until their concrete adapters, pinned corpus/model, endpoints, and device evidence are supplied. Do not promote these to [M] or [V] until the runner artifacts exist and acceptance criteria pass.
+
+
+## TweenAtom contract and implementation
+
+- Contract: `docs/TWEENATOM_STATE_CARRYING_CONTRACT.md`.
+- Rust type: `packages/substrate-native/src/tween_atom.rs`.
+- DuckDB schema: `packages/memory-chassis/src/schema_tween_atom.sql`.
+- Rust unit tests are included in `cargo test --lib --features turbovec`.
+- Schema application is included in the kinetic runner after `schema_20.sql` and `schema_kinetic.sql`.
+
+Status: **[C] source and schema committed; not yet compiled, migrated, integration-tested, or benchmarked.** Receipt references are not cryptographic verification. AVA-007 remains the sole authority; the runtime must verify the receipt before committing accepted/authorized state.
