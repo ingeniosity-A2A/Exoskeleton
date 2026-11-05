@@ -12,7 +12,7 @@ import type {
   CapabilityHandler,
   CapabilityObservation,
   CapabilityRequest,
-} from './types';
+} from './types.js';
 
 export interface HarnessStep {
   name: string;

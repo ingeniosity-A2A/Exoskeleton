@@ -3,7 +3,7 @@ import type {
   CapabilityManifest,
   CapabilityObservation,
   CapabilityRequest,
-} from './types';
+} from './types.js';
 
 /**
  * In-process capability registry.
@@ -18,6 +18,11 @@ export class CapabilityRegistry {
       throw new Error(`capability already registered: ${handler.name}`);
     }
     this.handlers.set(handler.name, handler);
+  }
+
+  /** Read-only resolution used by the lifecycle layer; never invokes. */
+  resolve(name: string): CapabilityHandler | undefined {
+    return this.handlers.get(name);
   }
 
   list(): CapabilityManifest[] {

@@ -239,3 +239,62 @@ Therefore its synthetic data is inconsistent with the observed gear plant and mu
 - Existing AVA-007 manifestos and authority documents are outside the scope of this record and must not be rewritten.
 
 This record preserves the session's findings and decisions. It does not substitute for source integration, runtime tests, or a reproducible Exoskeleton benchmark.
+
+## 10. Addendum — lifecycle-executed benchmark (run later the same day)
+
+This addendum supersedes §8 items 1 and 3 for the observer plane and qualifies the
+matching non-claim in §9. Sections 2–7 remain the record of what was observed at
+the time and are not rewritten.
+
+The experiment is now executed through Exoskeleton.
+`packages/capabilities/bench/run-kinetics-bench.mjs` registers the gear plant and
+the observer as capabilities in `CapabilityRegistry` and runs every step through
+`CapabilityLifecycle` (validate → resolve → allocate → execute → observe →
+validate_outcome → release → complete), emitting `exoskeleton.lifecycle.event/1.0`
+telemetry. There is no standalone measurement loop, no parallel Python runtime and
+no direct model call treated as an execution.
+
+Command: `node packages/capabilities/bench/run-kinetics-bench.mjs`
+Artifact: `packages/capabilities/bench/results/2026-11-05T10-32-23-694Z-911be8655b88-kinetics.json`
+
+| Scenario | Final position error | Final velocity error | Worst transient |
+|---|---:|---:|---:|
+| Stationary, 10 deg | 0.000 deg | 0.000 deg/s | 0.000 deg |
+| Constant velocity, 30 deg/s | -0.368508 deg | +0.019724 deg/s | 1.519501 deg (frame 9) |
+| Reversal at frame 300 | +0.368508 deg | -0.019724 deg/s | 3.407509 deg (frame 308) |
+| Frame jitter, 6 intervals rejected | -1.526582 deg | -12.879891 deg/s | 6.264617 deg (frame 486) |
+
+Structural result: 21/21 checks pass (2400 executions, 8 events each, one
+allocation and one release per execution, phase order monotonic, unauthorized
+call denied, duplicate event deduplicated, stale generation rejected, oversized
+interval not integrated, unknown capability refused). Exit code 0.
+
+Findings:
+
+1. The §6 diagnostic reproduces exactly: -0.368508 deg at the final sample,
+   velocity error +0.019724 deg/s. The position criterion (0.1 deg) is missed, the
+   velocity criterion (0.1 deg/s) is met — the same split the diagnostic reported.
+2. The residual is velocity-proportional: the reversal scenario ends at the exact
+   negation (+0.368508 deg, -0.019724 deg/s), so it is a tracking-lag term rather
+   than accumulating drift.
+3. The lag is frame-interval dependent: 12.284 ms equivalent lag at 1/60 s,
+   8.333 ms at 1/120 s, 4.167 ms at 1/240 s. Discrete error eigenvalues remain
+   0.9 at 1/60 s and 0.5 at the 0.25 s ceiling — inside the unit circle at every
+   accepted interval, so this is not marginal stability.
+4. Reconstructing the measurement across the frame reduces the residual to
+   8.333 ms but does not clear the 0.1 deg criterion, so measurement hold alone
+   does not explain it; the remainder is the one-substep forward-Euler
+   discretisation of a ramp. That reconstruction is a diagnostic only: it uses the
+   next sample and is not behaviour a sampling sensor provides at substep time.
+5. Rejecting intervals above 0.25 s is safe (nothing is integrated) but leaves an
+   uncorrected state error proportional to the motion skipped, with no explicit
+   re-acquisition path. The jitter scenario shows this directly.
+6. The lifecycle adds ~0.003 ms p50 per observer step over an unmediated
+   `registry.invoke` of the same recurrence, and the observer's numeric output is
+   identical to bit level through both paths.
+
+Still not measured: LFM3 inference (no provider or runtime here), the memory plane,
+any hardware or real-time scheduler, and sensor noise or dropout (the measurement
+model is noiseless by construction). No zero-copy, actuation-safety or sensor-fusion
+claim follows from this addendum, and a passing threshold would not authorize
+actuation.
