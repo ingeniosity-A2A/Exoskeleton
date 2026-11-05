@@ -771,6 +771,8 @@ const accuracyAllPass = accuracyCriteria.every(
   (c) => c.position_within_threshold && c.velocity_within_threshold && c.max_abs_position_within_threshold,
 );
 const structuralAllPass = structural.every((c) => c.ok);
+// Sampled before this runner writes its own artifact, so `worktree_dirty: false`
+// means the measured tree was clean, not that output was tidied afterwards.
 const git = gitInfo();
 
 const artifact = {
@@ -780,6 +782,7 @@ const artifact = {
   executed_through: 'CapabilityLifecycle (validate/resolve/allocate/execute/observe/validate_outcome/release/complete)',
   commit_sha: git.commit_sha,
   worktree_dirty: git.worktree_dirty,
+  worktree_state_sampled: 'before this run wrote its artifact',
   environment: {
     os: `${os.type()} ${os.release()}`,
     platform: os.platform(),
@@ -848,9 +851,12 @@ const artifact = {
   ],
 };
 
-const name = `${artifact.generated_at.replace(/[:.]/g, '-')}-${artifact.commit_sha.slice(0, 12)}-kinetics`;
+// One stable path: the committed artifact is exactly what this runner writes, so
+// its recorded commit and worktree state identify the tree that produced the
+// numbers. Timestamped copies are ignored by git; this file is tracked.
 mkdirSync(join(HERE, 'results'), { recursive: true });
-const file = join(HERE, 'results', `${name}.json`);
+const file = join(HERE, 'results', 'kinetics-observer.json');
+artifact.artifact_path = 'packages/capabilities/bench/results/kinetics-observer.json';
 writeFileSync(file, `${JSON.stringify(artifact, null, 2)}\n`);
 
 console.log(`artifact: ${file}`);

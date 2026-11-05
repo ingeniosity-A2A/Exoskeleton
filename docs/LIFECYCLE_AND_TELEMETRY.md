@@ -69,8 +69,9 @@ node packages/capabilities/bench/run-kinetics-bench.mjs
 
 Both runners write raw JSON artifacts under `packages/capabilities/bench/results/`
 including commit SHA, environment and exact command. Numbers below are from
-`2026-11-05T10-32-23-694Z-911be8655b88-kinetics.json`; latency figures move
-between runs, accuracy figures are deterministic.
+`packages/capabilities/bench/results/kinetics-observer.json`, which records the
+commit and the clean worktree it was measured on; latency figures move between
+runs, accuracy figures are deterministic.
 
 | Measurement | Result |
 |---|---|

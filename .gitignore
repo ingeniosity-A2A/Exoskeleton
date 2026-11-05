@@ -4,3 +4,9 @@ target/
 __pycache__/
 *.pyc
 .env
+
+# Generated TypeScript build output (rebuild: npx tsc -p packages/capabilities)
+packages/capabilities/dist/
+
+# Timestamped benchmark runs. The published artifact is tracked explicitly.
+packages/capabilities/bench/results/*.json
