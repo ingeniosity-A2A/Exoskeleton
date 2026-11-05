@@ -11,6 +11,7 @@ pub mod dfm_parametric;
 pub mod superiorization;
 pub mod consensus;
 pub mod ota_computation;
+pub mod tween_atom;
 #[cfg(feature = "turbovec")]
 pub mod turbovec_adapter;
 
