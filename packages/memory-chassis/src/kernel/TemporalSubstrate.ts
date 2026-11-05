@@ -1,15 +1,14 @@
 /**
  * HolographicTemporalEngine — frame-synchronized transition injection.
- * Cadence is display-bound (~16.67ms @ 60Hz / ~8.33ms @ 120Hz), not absolute 0ms.
- * Momentum: multi-dimension rate Mc = |dS|/dt; binary isTweening is not used.
+ * Persistence completes before the runtime transition begins. This prevents
+ * the live state from advancing when the durable ledger write fails.
  */
-
 import gsap from 'gsap';
 import {
   AvaCognitiveState,
   TweenAtom,
   AtomicTweenRow,
-  atomToRow,
+  atomToRows,
 } from '../types/CognitiveState';
 
 const MOMENTUM_DIMS = ['valence', 'urgency'] as const;
@@ -31,43 +30,40 @@ export class HolographicTemporalEngine {
     this.lastTimestamp = gsap.ticker.time;
   }
 
-  /**
-   * Inject atomic transition law. Instantiation is atomic; evaluation is
-   * frame-synchronized to the ticker (hardware cadence bounds).
-   */
-  public injectTransitionLaw(atom: TweenAtom): gsap.core.Tween {
+  /** Persist every numeric property before allowing GSAP to mutate live state. */
+  public async injectTransitionLaw(atom: TweenAtom): Promise<gsap.core.Tween> {
+    const rows = atomToRows(atom, this.opts.moleculeId, this.mind, this.opts.generation);
+    if (this.opts.persist) {
+      for (const row of rows) await this.opts.persist(row);
+    }
+
     this.lastTimestamp = gsap.ticker.time;
     this.lastState = { ...this.mind };
-
-    const row = atomToRow(atom, this.opts.moleculeId, this.mind, this.opts.generation);
-    void this.opts.persist?.(row);
 
     return gsap.to(this.mind, {
       ...atom.targetState,
       duration: atom.durationMs / 1000,
       ease: atom.easingWavefunction,
-      overwrite: 'auto', // Law of Overwrite
+      overwrite: 'auto',
       onUpdate: () => {
         const now = gsap.ticker.time;
         const dt = now - this.lastTimestamp;
         if (dt > 0) {
-          let sq = 0;
-          for (const d of MOMENTUM_DIMS) {
-            const dd = this.mind[d] - this.lastState[d];
-            sq += dd * dd;
+          let squaredDelta = 0;
+          for (const dimension of MOMENTUM_DIMS) {
+            const delta = this.mind[dimension] - this.lastState[dimension];
+            squaredDelta += delta * delta;
           }
-          this.mind.momentum = Math.sqrt(sq) / dt;
+          this.mind.momentum = Math.sqrt(squaredDelta) / dt;
         }
         this.lastTimestamp = now;
         this.lastState = { ...this.mind };
       },
-      onComplete: () => {
-        this.mind.momentum = 0;
-      },
+      onComplete: () => { this.mind.momentum = 0; },
     });
   }
 
   public snapshot(): Readonly<AvaCognitiveState> {
-    return this.mind;
+    return { ...this.mind };
   }
 }
