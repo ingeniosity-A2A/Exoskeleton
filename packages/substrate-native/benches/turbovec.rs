@@ -14,7 +14,7 @@ fn data() -> (Vec<f32>, Vec<u64>, Vec<f32>) {
         seed ^= seed << 13;
         seed ^= seed >> 7;
         seed ^= seed << 17;
-        ((seed >> 40) as i32 as f32) / (i32::MAX as f32)
+        (((seed >> 32) as u32) as f32 / (u32::MAX as f32)) * 2.0 - 1.0
     };
     let mut vectors = Vec::with_capacity(N * DIM);
     for _ in 0..N * DIM { vectors.push(next()); }
