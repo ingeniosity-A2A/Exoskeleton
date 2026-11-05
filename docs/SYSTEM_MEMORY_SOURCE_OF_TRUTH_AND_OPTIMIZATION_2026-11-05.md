@@ -235,3 +235,11 @@ Rustunnel is an optional, independently authenticated transport capability in th
 
 The full capability, integration boundaries, security gates, candidate uses, benchmark matrix, and unverified deployment status are recorded in [RUSTUNNEL_TRANSPORT_ARCHITECTURE_AUDIT_2026-11-05.md](RUSTUNNEL_TRANSPORT_ARCHITECTURE_AUDIT_2026-11-05.md). All Rustunnel integration work must read that audit before changing transport or network code.
 
+
+
+## 12. Kinetic Intelligence Retrieval benchmark contract
+
+The complete cross-system retrieval architecture and benchmark is defined in [KINETIC_INTELLIGENCE_RETRIEVAL_ARCHITECTURE_AND_BENCHMARK_2026-11-05.md](KINETIC_INTELLIGENCE_RETRIEVAL_ARCHITECTURE_AND_BENCHMARK_2026-11-05.md). It covers Hugging Face/Xet acquisition, Rustunnel's correct transport placement, Docling/TableFormer structural ingestion, atomic memory, holographic/associative memory experiments, RyanCodrai TurboVec/TurboQuant, DFM parametric memory, Ava-007 5G/edge networking, and the Exoskeleton/Vera Rubin systems co-design analogy.
+
+All of these components must be evaluated in the complete kinetic retrieval lifecycle. Rustunnel is not presumed to be a Hugging Face outbound forward proxy; TurboVec and associative indexes are rebuildable retrieval projections; DFM is a separate learned-memory experiment; DuckDB remains the durable Source Truth; AVA-007 retains acceptance and action authority. Read the benchmark contract before changing ingestion, retrieval, memory representation, transport, or benchmark code.
+
