@@ -55,3 +55,13 @@ The substrate-native crate exports experimental modules for DFM promotion metada
 - Core native tests and microbenchmarks: `python3 scripts/kinetic_suite.py --profile core`
 
 The runner records environment, exact commands, output, and blocked integrations under `artifacts/kinetic/`. It does not fabricate retrieval scores or implicitly download models. A completed core run is not full architecture acceptance.
+
+
+## TweenAtom state-carrying contract
+
+- [TweenAtom State-Carrying Contract](docs/TWEENATOM_STATE_CARRYING_CONTRACT.md)
+- Rust type: `packages/substrate-native/src/tween_atom.rs`
+- DuckDB schema: `packages/memory-chassis/src/schema_tween_atom.sql`
+- FreeBuff execution: `python3 scripts/kinetic_suite.py --profile full`
+
+TweenAtom is a typed, versioned, provenance-bearing state-transition envelope. The compact 53-token intent is one field, not the complete state. AVA-007 retains authority; Exoskeleton implements runtime mechanics and validates evidence.
