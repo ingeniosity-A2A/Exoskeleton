@@ -24,10 +24,11 @@ fn data() -> (Vec<f32>, Vec<u64>, Vec<f32>) {
     (vectors, ids, queries)
 }
 
-fn emit(name: &str, elapsed: f64, operations: usize, extra: &str) {
+fn emit(name: &str, elapsed: f64, operations: usize, extra_json_fields: &str) {
     println!(
-        "{{\"benchmark\":\"{}\",\"elapsed_ms\":{:.3},\"operations\":{},\"ops_per_sec\":{:.2},\"{}\"}}",
-        name, elapsed * 1000.0, operations, operations as f64 / elapsed.max(1e-12), extra
+        "{{\"benchmark\":\"{}\",\"elapsed_ms\":{:.3},\"operations\":{},\"ops_per_sec\":{:.2},{}}}",
+        name, elapsed * 1000.0, operations,
+        operations as f64 / elapsed.max(1e-12), extra_json_fields
     );
 }
 
@@ -46,7 +47,8 @@ fn main() {
     let start = Instant::now();
     for _ in 0..REPEATS { exact_scan(black_box(&vectors), black_box(&queries)); }
     let elapsed = start.elapsed().as_secs_f64();
-    emit("float32_exact_full_scan", elapsed, REPEATS * NQ, "\\\"dim\\\":128,\\\"n\\\":4096,\\\"k\\\":10");
+    emit("float32_exact_full_scan", elapsed, REPEATS * NQ,
+         r#""dim":128,"n":4096,"k":10"#);
 
     for bits in [2usize, 3, 4] {
         let mut index = IdMapIndex::new(DIM, bits).expect("TurboVec index");
@@ -64,7 +66,8 @@ fn main() {
         emit(
             &format!("turbovec_{}_bit_search", bits),
             search_elapsed, REPEATS * NQ,
-            &format!("\\\"dim\\\":{},\\\"n\\\":{},\\\"k\\\":{},\\\"add_ms\\\":{:.3}", DIM, N, K, add_elapsed*1000.0),
+            &format!(r#""dim":{},"n":{},"k":{},"add_ms":{:.3}"#,
+                     DIM, N, K, add_elapsed * 1000.0),
         );
 
         let allowlist: Vec<u64> = ids.iter().step_by(2).copied().collect();
@@ -77,7 +80,8 @@ fn main() {
         emit(
             &format!("turbovec_{}_bit_acl_allowlist_search", bits),
             start_filtered.elapsed().as_secs_f64(), REPEATS * NQ,
-            &format!("\\\"dim\\\":{},\\\"n\\\":{},\\\"allowlist\\\":{},\\\"k\\\":{}", DIM, N, allowlist.len(), K),
+            &format!(r#""dim":{},"n":{},"allowlist":{},"k":{}"#,
+                     DIM, N, allowlist.len(), K),
         );
     }
 }
