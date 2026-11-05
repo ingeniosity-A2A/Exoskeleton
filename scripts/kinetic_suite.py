@@ -88,7 +88,7 @@ def main() -> int:
     steps: list[dict] = []
     cargo_manifest = ROOT / "packages" / "substrate-native" / "Cargo.toml"
     steps.append(run_step("rust_format_check", ["cargo", "fmt", "--manifest-path", str(cargo_manifest), "--", "--check"], ROOT, 300))
-    steps.append(run_step("rust_tests", ["cargo", "test", "--manifest-path", str(cargo_manifest), "--lib", "--features", "turbovec"], ROOT, 1800))
+    steps.append(run_step("rust_tests", ["cargo", "test", "--manifest-path", str(cargo_manifest), "--features", "turbovec"], ROOT, 1800))
     if not args.skip_bench:
         steps.append(run_step("rust_substrate_bench", ["cargo", "bench", "--manifest-path", str(cargo_manifest), "--bench", "substrate", "--features", "turbovec"], ROOT, 1800))
         steps.append(run_step("rust_turbovec_bench", ["cargo", "bench", "--manifest-path", str(cargo_manifest), "--bench", "turbovec", "--features", "turbovec"], ROOT, 1800))
