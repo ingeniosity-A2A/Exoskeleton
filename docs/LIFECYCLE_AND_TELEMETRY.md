@@ -23,7 +23,9 @@ validate ──► resolve ──► allocate ──► execute ──► observ
 | Capability-level grants checked | `contract.requiresGrants`, denial `AUTHORIZATION_DENIED` |
 | Capability resolved through the registry | `CapabilityRegistry.resolve()` (read-only addition) |
 | Bounded execution | `timeoutMs` (request → contract → default), denial `TIMEOUT` |
-| Cooperative cancellation | `signal` checked pre-execution and raced in-flight, `CANCELLED` |
+| Cooperative cancellation, propagated to the provider | `signal` checked pre-execution; a provider-facing channel is aborted on timeout or caller cancellation; denial `CANCELLED` |
+| Release after the work stops | bounded drain (`drainMs`); `abortPropagated` and `workDrain` are recorded on the result and the `execute` event |
+| Undrained work surfaced, not assumed stopped | `workDrain: 'pending'` when a provider ignores the abort; cleanup still runs |
 | Resource release on every path | `try/catch` around `allocation.release()`; runs on success, handler failure, timeout and cancellation |
 | Cleanup failure surfaced, not hidden | `cleanup: 'failed'` + `release` event with `CLEANUP_ERROR`; primary outcome preserved |
 | Telemetry cannot change execution | sink `emit()` is isolated in `try/catch` |
@@ -50,8 +52,13 @@ Error codes: `INVALID_INPUT`, `CONTRACT_MISSING`, `AUTHORIZATION_DENIED`,
 `UNKNOWN_CAPABILITY`, `ALLOCATION_FAILED`, `HANDLER_ERROR`, `TIMEOUT`,
 `CANCELLED`, `INVALID_OUTPUT`, `CLEANUP_ERROR`.
 
-Only an in-memory bounded sink (`MemoryEventSink`) is implemented. No external
-exporter is claimed: none is provisioned.
+`MemoryEventSink` is bounded and in-memory. `NullEventSink` discards events and
+serves as the "telemetry disabled" baseline. `JsonlEventSink`
+(`src/durable_sink.ts`) appends NDJSON and is durable once `flush()` returns,
+because it calls `fsync`; `recoverJsonl()` replays a file after a restart and
+reports duplicates, sequence gaps and malformed lines. It is deliberately not
+exported from `index.ts`, so importing the package pulls no filesystem built-ins.
+No remote exporter is claimed: none is provisioned.
 
 ## Reproduce
 
@@ -61,6 +68,7 @@ npx tsc -p packages/capabilities
 node --test packages/capabilities/test/lifecycle.test.mjs
 node packages/capabilities/bench/run-lifecycle-bench.mjs
 node packages/capabilities/bench/run-kinetics-bench.mjs
+node packages/capabilities/bench/run-e2e-bench.mjs
 ```
 
 `pnpm-workspace.yaml` and `pnpm-lock.yaml` are untouched.
@@ -85,6 +93,8 @@ runs, accuracy figures are deterministic.
 | Alignment period | 720 deg of gear A (1080 deg of gear B) |
 | Discrete error eigenvalues | 0.9 at 1/60 s, 0.5 at 0.25 s (inside the unit circle) |
 | Lifecycle cost per observer step | p50 0.009538-0.016331 ms, +0.013676 ms over unmediated registry.invoke |
+| Lifecycle acceptance tests | 17/17 pass (adds cancellation propagation, timeout abort, undrained surfacing) |
+| End-to-end gate checks | 17/17 pass on a clean tree; see `docs/E2E_EXECUTION_AND_COPY_ACCOUNTING.md` |
 
 Accuracy criteria (0.1 deg position, 0.1 deg/s velocity) are **not** all met. The
 constant-velocity residual reproduces the previously recorded -0.36850756 deg and
@@ -98,5 +108,6 @@ adjust the thresholds to clear it.
 |---|---|---|
 | Observer correctness | `MEASURED (criteria not met)` | Deterministic plant and observer run through the lifecycle by `bench/run-kinetics-bench.mjs`. Accuracy thresholds from the experiment record are missed for constant velocity, reversal and frame jitter; see Evidence. |
 | LFM3 inference | `NOT RUN` | No LFM3 provider or runtime is available here; no mock inference is substituted. |
-| Memory plane (mailbox, Arrow, N-API, DuckDB) | `NOT RUN` | Not exercised by the lifecycle runner. No zero-copy claim is made. |
+| Native memory plane (Rust mailbox, N-API, Arrow, DuckDB) | `NOT RUN` | No `cargo`/`rustc`, no N-API build (the crate declares no napi dependency) and no DuckDB/Arrow packages here. JS-level copy boundaries are measured in `docs/E2E_EXECUTION_AND_COPY_ACCOUNTING.md`; no native zero-copy claim is made. |
+| Rust mailbox / DuckDB / LFM3 copy accounting | `NOT RUN` | Same blockers; see the boundary table in `docs/E2E_EXECUTION_AND_COPY_ACCOUNTING.md`. |
 | Policy authorization | `NOT RUN` | Governing authority is Cybernetic-Ava007; this substrate only enforces capability-level grants. |

@@ -1,0 +1,797 @@
+{
+  "schema": "exoskeleton.e2e.execution/1.0",
+  "generated_at": "2026-11-05T11:26:02.536Z",
+  "commit_sha": "bcdd250ad00a144935f85468c28bfd39d6648943",
+  "worktree_dirty": false,
+  "worktree_state_sampled": "before this run wrote its artifact",
+  "command": "npx tsc -p packages/capabilities && node packages/capabilities/bench/run-e2e-bench.mjs",
+  "environment": {
+    "node": "v26.13.0",
+    "platform": "linux",
+    "arch": "x64",
+    "cpu_count": 2,
+    "peak_rss_mb": 314.45
+  },
+  "gates": {
+    "gate1_execution": {
+      "checks": [
+        {
+          "check": "all correctness checks pass",
+          "ok": true,
+          "detail": {
+            "failed": []
+          }
+        },
+        {
+          "check": "every latency execution succeeded",
+          "ok": true,
+          "detail": {
+            "levels": 4
+          }
+        },
+        {
+          "check": "cooperative cancellation stopped provider work before release",
+          "ok": true,
+          "detail": {
+            "processed": 10027008,
+            "total": 25165824,
+            "work_drain": "settled"
+          }
+        },
+        {
+          "check": "timeout aborted the provider and forced release",
+          "ok": true,
+          "detail": {
+            "error_code": "TIMEOUT",
+            "work_drain": "settled"
+          }
+        },
+        {
+          "check": "non-cooperative provider is surfaced as undrained",
+          "ok": true,
+          "detail": {
+            "work_drain": "pending",
+            "released_before_settle": true
+          }
+        },
+        {
+          "check": "provider failure releases resources",
+          "ok": true,
+          "detail": {
+            "error_code": "HANDLER_ERROR",
+            "cleanup": "released",
+            "allocations": 1,
+            "releases": 1
+          }
+        },
+        {
+          "check": "retry under caller orchestration leaves no leaked resources",
+          "ok": true,
+          "detail": {
+            "attempts": 3,
+            "final_ok": true,
+            "generations_distinct": true,
+            "allocations": 3,
+            "releases": 3,
+            "pool_balanced": true,
+            "note": "the lifecycle has no retry policy; retrying is caller orchestration and was measured as such"
+          }
+        },
+        {
+          "check": "mixed outcomes under concurrency restore the pool",
+          "ok": true,
+          "detail": {
+            "outcomes": {
+              "AUTHORIZATION_DENIED": 5,
+              "ALLOCATION_FAILED": 23,
+              "OK": 4
+            },
+            "pool_free_after": 4
+          }
+        }
+      ],
+      "correctness": {
+        "checks": [
+          {
+            "check": "sense.audio executes end to end through the lifecycle",
+            "ok": true,
+            "detail": {
+              "ok": true,
+              "cleanup": "not_required",
+              "events": 8,
+              "allocates": false
+            }
+          },
+          {
+            "check": "code.resolve (composed capability) executes end to end",
+            "ok": true,
+            "detail": {
+              "ok": true,
+              "cleanup": "not_required",
+              "verified": true,
+              "allocates": false
+            }
+          },
+          {
+            "check": "native.sha256 result matches an independent SHA-256 of the same bytes",
+            "ok": true,
+            "detail": {
+              "match": true,
+              "bytes": 262144
+            }
+          },
+          {
+            "check": "missing grant denies before provider invocation",
+            "ok": true,
+            "detail": {
+              "errorCode": "AUTHORIZATION_DENIED",
+              "invocations": 1
+            }
+          },
+          {
+            "check": "invalid input is rejected by the contract",
+            "ok": true,
+            "detail": {
+              "errorCode": "INVALID_INPUT"
+            }
+          },
+          {
+            "check": "unknown capability fails closed",
+            "ok": true,
+            "detail": {
+              "errorCode": "UNKNOWN_CAPABILITY"
+            }
+          },
+          {
+            "check": "every event correlates to one trace with contiguous seq",
+            "ok": true,
+            "detail": {
+              "events": 8,
+              "traceId": "trace-3-57j8k7un"
+            }
+          },
+          {
+            "check": "event schema is the versioned contract",
+            "ok": true,
+            "detail": {
+              "schema": "exoskeleton.lifecycle.event/1.0"
+            }
+          },
+          {
+            "check": "pool accounting balanced across correctness runs",
+            "ok": true,
+            "detail": {
+              "capacity": 8,
+              "slot_bytes": 65536,
+              "allocations": 1,
+              "releases": 1,
+              "exhausted": 0,
+              "peak_in_use": 1,
+              "free_after": 8
+            }
+          }
+        ],
+        "providers": {
+          "sense.audio": {
+            "implementation": "shipped handler",
+            "backend": "mock",
+            "mock_backend": true
+          },
+          "code.resolve": {
+            "implementation": "shipped composed harness reference",
+            "mock_backend": false
+          },
+          "native.sha256": {
+            "implementation": "real SHA-256 over real bytes",
+            "mock_backend": false
+          }
+        },
+        "note": "sense.audio runs the mock backend the repository ships. Its latency is path overhead, not inference.",
+        "pool_accounting": {
+          "capacity": 8,
+          "slot_bytes": 65536,
+          "allocations": 1,
+          "releases": 1,
+          "exhausted": 0,
+          "peak_in_use": 1
+        },
+        "events_per_success": 8
+      },
+      "latency": {
+        "workload": {
+          "capability": "native.sha256",
+          "bytes": 262144,
+          "executions": 160
+        },
+        "grants": [
+          "capability.compute"
+        ],
+        "levels": [
+          {
+            "concurrency": 1,
+            "executions": 160,
+            "ok": 160,
+            "wall_ms": 57.2822,
+            "throughput_per_s": 2793.19,
+            "cpu_ms": 59.45,
+            "request_latency": {
+              "n": 160,
+              "mean_ms": 0.3542,
+              "p50_ms": 0.346,
+              "p95_ms": 0.4117,
+              "p99_ms": 0.8188,
+              "max_ms": 1.2604
+            },
+            "provider_latency": {
+              "n": 160,
+              "mean_ms": 0.3244,
+              "p50_ms": 0.3169,
+              "p95_ms": 0.3578,
+              "p99_ms": 0.783,
+              "max_ms": 1.2262
+            },
+            "memory": {
+              "rss_mb": 98.92,
+              "heap_used_mb": 6.59,
+              "external_mb": 10.1
+            }
+          },
+          {
+            "concurrency": 4,
+            "executions": 160,
+            "ok": 160,
+            "wall_ms": 46.6564,
+            "throughput_per_s": 3429.33,
+            "cpu_ms": 50.59,
+            "request_latency": {
+              "n": 160,
+              "mean_ms": 1.15,
+              "p50_ms": 0.8877,
+              "p95_ms": 1.3564,
+              "p99_ms": 6.5663,
+              "max_ms": 6.5718
+            },
+            "provider_latency": {
+              "n": 160,
+              "mean_ms": 0.2575,
+              "p50_ms": 0.2001,
+              "p95_ms": 0.3249,
+              "p99_ms": 0.3539,
+              "max_ms": 3.6964
+            },
+            "memory": {
+              "rss_mb": 76.57,
+              "heap_used_mb": 7.74,
+              "external_mb": 22.6
+            }
+          },
+          {
+            "concurrency": 16,
+            "executions": 160,
+            "ok": 160,
+            "wall_ms": 59.1985,
+            "throughput_per_s": 2702.77,
+            "cpu_ms": 70.83,
+            "request_latency": {
+              "n": 160,
+              "mean_ms": 5.8583,
+              "p50_ms": 5.1576,
+              "p95_ms": 9.582,
+              "p99_ms": 9.5967,
+              "max_ms": 9.6041
+            },
+            "provider_latency": {
+              "n": 160,
+              "mean_ms": 0.3505,
+              "p50_ms": 0.3127,
+              "p95_ms": 0.3774,
+              "p99_ms": 1.348,
+              "max_ms": 4.6267
+            },
+            "memory": {
+              "rss_mb": 91.49,
+              "heap_used_mb": 8.52,
+              "external_mb": 34.6
+            }
+          },
+          {
+            "concurrency": 64,
+            "executions": 160,
+            "ok": 160,
+            "wall_ms": 55.054,
+            "throughput_per_s": 2906.24,
+            "cpu_ms": 70.71,
+            "request_latency": {
+              "n": 160,
+              "mean_ms": 19.6036,
+              "p50_ms": 21.7478,
+              "p95_ms": 22.0593,
+              "p99_ms": 22.077,
+              "max_ms": 22.0844
+            },
+            "provider_latency": {
+              "n": 160,
+              "mean_ms": 0.3256,
+              "p50_ms": 0.3146,
+              "p95_ms": 0.3492,
+              "p99_ms": 0.6503,
+              "max_ms": 3.4853
+            },
+            "memory": {
+              "rss_mb": 136.77,
+              "heap_used_mb": 8.27,
+              "external_mb": 19.6
+            }
+          }
+        ],
+        "pool_accounting": {
+          "capacity": 64,
+          "slot_bytes": 65536,
+          "allocations": 720,
+          "releases": 720,
+          "exhausted": 0,
+          "peak_in_use": 64
+        },
+        "pool_free_after": 64
+      },
+      "outcomes": {
+        "cancellation_cooperative": {
+          "error_code": "CANCELLED",
+          "abort_propagated": true,
+          "work_drain": "settled",
+          "bytes_total": 25165824,
+          "bytes_processed": 10027008,
+          "stopped_early": true,
+          "released_after_stop": true,
+          "cleanup": "released",
+          "pool_balanced": true
+        },
+        "timeout": {
+          "error_code": "TIMEOUT",
+          "abort_propagated": true,
+          "work_drain": "settled",
+          "bytes_total": 25165824,
+          "bytes_processed": 8978432,
+          "stopped_early": true,
+          "released_after_stop": true,
+          "cleanup": "released"
+        },
+        "cancellation_noncooperative": {
+          "error_code": "TIMEOUT",
+          "abort_propagated": true,
+          "work_drain": "pending",
+          "cleanup": "released",
+          "released_before_settle": true,
+          "leftover_ms": 268.8009,
+          "note": "release did not wait for work that never observed abort; the leftover is surfaced as workDrain=pending"
+        },
+        "provider_failure": {
+          "error_code": "HANDLER_ERROR",
+          "cleanup": "released",
+          "allocations": 1,
+          "releases": 1
+        },
+        "retry": {
+          "attempts": 3,
+          "final_ok": true,
+          "generations_distinct": true,
+          "allocations": 3,
+          "releases": 3,
+          "pool_balanced": true,
+          "note": "the lifecycle has no retry policy; retrying is caller orchestration and was measured as such"
+        },
+        "mixed_concurrency": {
+          "executions": 32,
+          "outcomes": {
+            "AUTHORIZATION_DENIED": 5,
+            "ALLOCATION_FAILED": 23,
+            "OK": 4
+          },
+          "pool_accounting": {
+            "capacity": 4,
+            "slot_bytes": 65536,
+            "allocations": 4,
+            "releases": 4,
+            "exhausted": 23,
+            "peak_in_use": 4
+          },
+          "pool_free_after": 4,
+          "pool_restored": true,
+          "allocations_balanced": true,
+          "event_sequences_contiguous": true
+        }
+      }
+    },
+    "gate2_boundaries": {
+      "checks": [
+        {
+          "check": "alias views share one allocation (zero copy, verified by mutation)",
+          "ok": true,
+          "detail": {
+            "verified": true
+          }
+        },
+        {
+          "check": "copy baseline copies the payload and is independent",
+          "ok": true,
+          "detail": {
+            "bytes_copied": 8388608
+          }
+        },
+        {
+          "check": "structured clone is a real copy",
+          "ok": true,
+          "detail": {
+            "main_detached": false,
+            "worker_byte_length": 8388608,
+            "main_first_byte": 17,
+            "worker_first_byte_seen": 17,
+            "worker_first_byte_written": 18,
+            "copy_proven": true
+          }
+        },
+        {
+          "check": "transfer moves ownership without copying (sender detached)",
+          "ok": true,
+          "detail": {
+            "main_detached": true,
+            "worker_byte_length": 8388608,
+            "worker_first_byte_seen": 17,
+            "zero_copy_proven": true
+          }
+        },
+        {
+          "check": "shared buffer is the same allocation in both threads",
+          "ok": true,
+          "detail": {
+            "worker_observed_main_byte": 17,
+            "main_observed_worker_byte": 90,
+            "counter_incremented": true,
+            "same_allocation_proven": true
+          }
+        }
+      ],
+      "boundaries": [
+        {
+          "id": "js.same_allocation_alias",
+          "bytes": 8388608,
+          "iterations": 12,
+          "bytes_copied_per_call": 0,
+          "allocations_per_call": 1,
+          "verified_same_allocation": true,
+          "latency": {
+            "n": 12,
+            "mean_ms": 0.1993,
+            "p50_ms": 0.1201,
+            "p95_ms": 0.6548,
+            "p99_ms": 0.6548,
+            "max_ms": 0.6548
+          }
+        },
+        {
+          "id": "js.copy_baseline",
+          "bytes": 8388608,
+          "iterations": 12,
+          "bytes_copied_per_call": 8388608,
+          "allocations_per_call": 2,
+          "verified_independent_memory": true,
+          "latency": {
+            "n": 12,
+            "mean_ms": 12.5969,
+            "p50_ms": 9.3561,
+            "p95_ms": 36.3744,
+            "p99_ms": 36.3744,
+            "max_ms": 36.3744
+          },
+          "note": "equivalent copy-based baseline for the alias boundary"
+        },
+        {
+          "id": "worker.structured_clone",
+          "bytes": 8388608,
+          "iterations": 10,
+          "bytes_copied_per_call": 8388608,
+          "allocations_per_call": 1,
+          "verified": {
+            "main_detached": false,
+            "worker_byte_length": 8388608,
+            "main_first_byte": 17,
+            "worker_first_byte_seen": 17,
+            "worker_first_byte_written": 18,
+            "copy_proven": true
+          },
+          "latency": {
+            "n": 10,
+            "mean_ms": 19.6024,
+            "p50_ms": 21.3433,
+            "p95_ms": 35.8198,
+            "p99_ms": 35.8198,
+            "max_ms": 35.8198
+          },
+          "note": "postMessage without a transfer list serialises the payload into the worker heap"
+        },
+        {
+          "id": "worker.transfer",
+          "bytes": 8388608,
+          "iterations": 10,
+          "bytes_copied_per_call": 0,
+          "allocations_per_call": 1,
+          "verified": {
+            "main_detached": true,
+            "worker_byte_length": 8388608,
+            "worker_first_byte_seen": 17,
+            "zero_copy_proven": true
+          },
+          "latency": {
+            "n": 10,
+            "mean_ms": 6.8397,
+            "p50_ms": 6.3198,
+            "p95_ms": 8.2485,
+            "p99_ms": 8.2485,
+            "max_ms": 8.2485
+          },
+          "note": "detachment of the sender buffer is the observable proof that ownership moved"
+        },
+        {
+          "id": "worker.shared_array_buffer",
+          "bytes": 8388608,
+          "iterations": 10,
+          "bytes_copied_per_call": 0,
+          "allocations_per_call": 1,
+          "verified": {
+            "worker_observed_main_byte": 17,
+            "main_observed_worker_byte": 90,
+            "counter_incremented": true,
+            "same_allocation_proven": true
+          },
+          "latency": {
+            "n": 10,
+            "mean_ms": 0.0818,
+            "p50_ms": 0.0566,
+            "p95_ms": 0.2529,
+            "p99_ms": 0.2529,
+            "max_ms": 0.2529
+          },
+          "note": "two-way visibility through the same allocation; concurrency safety is not established by this test"
+        }
+      ],
+      "not_run": [
+        {
+          "id": "rust.mailbox_producer",
+          "status": "NOT RUN",
+          "blocker": "no cargo/rustc in this environment; packages/substrate-native has no built artifact, and the crate is not a dependency of any JS package"
+        },
+        {
+          "id": "native.consumer_to_node",
+          "status": "NOT RUN",
+          "blocker": "napi_bridge.rs exists but Cargo.toml declares no napi dependency, so there is no N-API build to load; no WASM build is produced either"
+        },
+        {
+          "id": "arrow.to_duckdb",
+          "status": "NOT RUN",
+          "blocker": "@duckdb/duckdb-wasm and apache-arrow are not installed (no pnpm binary, no lockfile importers); memory-chassis imports them only as types"
+        },
+        {
+          "id": "duckdb.persistence_recovery",
+          "status": "NOT RUN",
+          "blocker": "no DuckDB runtime is installed, so no persistence or recovery path exists to measure"
+        }
+      ]
+    },
+    "gate3_pipeline": {
+      "checks": [
+        {
+          "check": "telemetry completes 8 events per successful execution",
+          "ok": true,
+          "detail": {
+            "events_expected": 4800
+          }
+        },
+        {
+          "check": "telemetry sinks do not change execution outcome",
+          "ok": true,
+          "detail": [
+            {
+              "telemetry": "disabled",
+              "ok": 200
+            },
+            {
+              "telemetry": "memory",
+              "ok": 200
+            },
+            {
+              "telemetry": "jsonl_fsync",
+              "ok": 200
+            }
+          ]
+        },
+        {
+          "check": "persisted telemetry survives two separate processes",
+          "ok": true,
+          "detail": {
+            "events": 400,
+            "traces": 50
+          }
+        },
+        {
+          "check": "recovered telemetry has no duplicates, gaps or malformed lines",
+          "ok": true,
+          "detail": {
+            "duplicates": 0,
+            "seq_gaps": 0,
+            "malformed": 0
+          }
+        }
+      ],
+      "workload": {
+        "capability": "native.sha256",
+        "bytes": 8192,
+        "executions": 200,
+        "concurrency": 4
+      },
+      "sessions": [
+        {
+          "telemetry": "disabled",
+          "executions": 200,
+          "ok": 200,
+          "wall_ms": 11.6611,
+          "throughput_per_s": 17151.06,
+          "request_latency": {
+            "n": 200,
+            "mean_ms": 0.1474,
+            "p50_ms": 0.0976,
+            "p95_ms": 0.1777,
+            "p99_ms": 0.971,
+            "max_ms": 4.4471
+          },
+          "events_expected": 1600,
+          "events_retained_in_memory": null,
+          "pool_balanced": true,
+          "pool_free_after": 32,
+          "durable": {
+            "events": 0,
+            "bytes": 0
+          }
+        },
+        {
+          "telemetry": "memory",
+          "executions": 200,
+          "ok": 200,
+          "wall_ms": 5.4135,
+          "throughput_per_s": 36944.4,
+          "request_latency": {
+            "n": 200,
+            "mean_ms": 0.0982,
+            "p50_ms": 0.0806,
+            "p95_ms": 0.1289,
+            "p99_ms": 0.635,
+            "max_ms": 0.6399
+          },
+          "events_expected": 1600,
+          "events_retained_in_memory": 1600,
+          "pool_balanced": true,
+          "pool_free_after": 32,
+          "durable": {
+            "events": 0,
+            "bytes": 0
+          }
+        },
+        {
+          "telemetry": "jsonl_fsync",
+          "executions": 200,
+          "ok": 200,
+          "wall_ms": 62.9418,
+          "throughput_per_s": 3177.54,
+          "request_latency": {
+            "n": 200,
+            "mean_ms": 0.3124,
+            "p50_ms": 0.2814,
+            "p95_ms": 0.3932,
+            "p99_ms": 1.1721,
+            "max_ms": 1.1995
+          },
+          "events_expected": 1600,
+          "events_retained_in_memory": null,
+          "pool_balanced": true,
+          "pool_free_after": 32,
+          "durable": {
+            "events": 1600,
+            "bytes": 508299
+          }
+        }
+      ],
+      "restart_recovery": {
+        "path": "packages/capabilities/bench/results/telemetry-recovery.jsonl",
+        "processes": 2,
+        "session_a": {
+          "path": "/workspace/chats/de34e56852d6d129eeac06a9/external/exoskeleton/packages/capabilities/bench/results/telemetry-recovery.jsonl",
+          "executions": 25,
+          "events": 200
+        },
+        "recovery_after_a": {
+          "path": "/workspace/chats/de34e56852d6d129eeac06a9/external/exoskeleton/packages/capabilities/bench/results/telemetry-recovery.jsonl",
+          "expected_schema": "exoskeleton.lifecycle.event/1.0",
+          "events": 200,
+          "traces": 25,
+          "duplicate_event_ids": 0,
+          "seq_gaps": 0,
+          "malformed_lines": 0,
+          "capabilities": [
+            "telemetry.sample"
+          ],
+          "ok": true
+        },
+        "session_b": {
+          "path": "/workspace/chats/de34e56852d6d129eeac06a9/external/exoskeleton/packages/capabilities/bench/results/telemetry-recovery.jsonl",
+          "executions": 25,
+          "events": 200
+        },
+        "recovery_after_b": {
+          "path": "/workspace/chats/de34e56852d6d129eeac06a9/external/exoskeleton/packages/capabilities/bench/results/telemetry-recovery.jsonl",
+          "expected_schema": "exoskeleton.lifecycle.event/1.0",
+          "events": 400,
+          "traces": 50,
+          "duplicate_event_ids": 0,
+          "seq_gaps": 0,
+          "malformed_lines": 0,
+          "capabilities": [
+            "telemetry.sample"
+          ],
+          "ok": true
+        },
+        "verifier_exit_status": 0,
+        "events_total": 400,
+        "traces_total": 50,
+        "duplicates": 0,
+        "seq_gaps": 0,
+        "malformed": 0
+      }
+    }
+  },
+  "accepted": {
+    "checks_total": 17,
+    "checks_passed": 17,
+    "failed": []
+  },
+  "not_run": [
+    {
+      "id": "lfm3.provider",
+      "status": "NOT RUN",
+      "blocker": "no LFM3 runtime or provider exists in this repository; nothing to integrate and no mock inference is substituted"
+    },
+    {
+      "id": "policy.authorization",
+      "status": "NOT RUN",
+      "blocker": "governing authorization is owned by Cybernetic-Ava007 and is not present here; only capability-level grants were exercised"
+    },
+    {
+      "id": "rust.mailbox_producer",
+      "status": "NOT RUN",
+      "blocker": "no cargo/rustc in this environment; packages/substrate-native has no built artifact, and the crate is not a dependency of any JS package"
+    },
+    {
+      "id": "native.consumer_to_node",
+      "status": "NOT RUN",
+      "blocker": "napi_bridge.rs exists but Cargo.toml declares no napi dependency, so there is no N-API build to load; no WASM build is produced either"
+    },
+    {
+      "id": "arrow.to_duckdb",
+      "status": "NOT RUN",
+      "blocker": "@duckdb/duckdb-wasm and apache-arrow are not installed (no pnpm binary, no lockfile importers); memory-chassis imports them only as types"
+    },
+    {
+      "id": "duckdb.persistence_recovery",
+      "status": "NOT RUN",
+      "blocker": "no DuckDB runtime is installed, so no persistence or recovery path exists to measure"
+    },
+    {
+      "id": "execution_state.recovery",
+      "status": "NOT RUN",
+      "blocker": "telemetry recovery is persisted; there is no persisted execution state machine to restore"
+    },
+    {
+      "id": "hardware.realtime",
+      "status": "NOT RUN",
+      "blocker": "no hardware, sensor or real-time scheduler is available in this environment"
+    }
+  ]
+}
