@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>The 10 Common LLM Mistakes — Exoskeleton Gates</title></head>
+<body>
+<article class="manifesto" data-gate="llm-mistakes-01-10" data-slug="ten-common-llm-mistakes">
+  <header class="manifesto-header">
+    <div class="manifesto-meta">Exoskeleton · Ten Diagnostic and Deny Gates</div>
+    <h1>The 10 Common LLM Mistakes</h1>
+    <p class="manifesto-subtitle">A diagnostic key, operating instruction, and explicit deny list for each failure mode.</p>
+  </header>
+
+  <section class="stanza stanza-manifesto-gate" data-gate-id="llm-mistake-01-capability-ceiling">
+    <div class="stanza-metadata"><div class="stanza-key"><p>Mistake 01: The model structurally cannot do the job. Insufficient reasoning depth, knowledge cutoff mismatch, or simply not enough parameters for the domain.</p></div></div>
+    <div class="stanza-body stanza"><p>No amount of prompt engineering fixes a capability gap. The system must match the model to the task before touching the prompt.</p></div>
+    <div class="stanza stanza-list"><ul>
+      <li>Deny: Forcing local parameter proxies past their structural limits.</li>
+      <li>Deny: Substituting prompt trickery for proper model selection.</li>
+    </ul></div>
+  </section>
+
+  <section class="stanza stanza-manifesto-gate" data-gate-id="llm-mistake-02-value-misalignment">
+    <div class="stanza-metadata"><div class="stanza-key"><p>Mistake 02: LLMs default to safe, thorough, complete, and conventional patterns. They expand solution space rather than constrain it.</p></div></div>
+    <div class="stanza-body stanza"><p>Occam's razor demands subtractive prompting. The simplest solution that handles load-bearing cases must be stated explicitly against training distribution pull.</p></div>
+    <div class="stanza stanza-list"><ul>
+      <li>Deny: Completeness bias, effort signaling, and pleasing bias.</li>
+      <li>Deny: Unrequested mirror states, redundant error handling, and complexity proxies.</li>
+    </ul></div>
+  </section>
+
+  <section class="stanza stanza-manifesto-gate" data-gate-id="llm-mistake-03-instruction-failure">
+    <div class="stanza-metadata"><div class="stanza-key"><p>Mistake 03: The prompt doesn't constrain the model sufficiently. Silence is filled with default assumptions.</p></div></div>
+    <div class="stanza-body stanza"><p>Non-requirements must be made explicit. Stating what does not need to survive removes justification for unwanted complexity.</p></div>
+    <div class="stanza stanza-list"><ul>
+      <li>Deny: Unstated implicit assumptions and unaddressed local vs. global constraint confusion.</li>
+      <li>Deny: Silent conflict resolution without an explicit constraint hierarchy.</li>
+    </ul></div>
+  </section>
+
+  <section class="stanza stanza-manifesto-gate" data-gate-id="llm-mistake-04-invariant-vs-guideline">
+    <div class="stanza-metadata"><div class="stanza-key"><p>Mistake 04: The model treats hard constraints as soft preferences, downgrading a MUST to a SHOULD under friction.</p></div></div>
+    <div class="stanza-body stanza"><p>Explicit compliance tiers prevent silent degradation by establishing non-negotiable halt conditions.</p></div>
+    <div class="stanza stanza-list"><ul>
+      <li>Deny: Re-interpreting invariants to resolve a conflict.</li>
+      <li>Deny: Silent degradation of hard operational boundaries.</li>
+    </ul></div>
+  </section>
+
+  <section class="stanza stanza-manifesto-gate" data-gate-id="llm-mistake-05-context-failure">
+    <div class="stanza-metadata"><div class="stanza-key"><p>Mistake 05: Context degradation over long conversations where early constraints dilute and bad output becomes an input assumption.</p></div></div>
+    <div class="stanza-body stanza"><p>Constraints must anchor both top and bottom of prompts, requiring fresh contexts and explicit state summaries at task boundaries.</p></div>
+    <div class="stanza stanza-list"><ul>
+      <li>Deny: Mid-session drift reverting to default assistant behaviors.</li>
+      <li>Deny: Operating from stale historical assumptions that no longer reflect reality.</li>
+    </ul></div>
+  </section>
+
+  <section class="stanza stanza-manifesto-gate" data-gate-id="llm-mistake-06-reasoning-failure">
+    <div class="stanza-metadata"><div class="stanza-key"><p>Mistake 06: Accepting the first plausible solution without exploring alternatives, resulting in cascade assumptions.</p></div></div>
+    <div class="stanza-body stanza"><p>Reasoning checkpoints must enforce alternative generation before selection to prevent local optimization errors.</p></div>
+    <div class="stanza stanza-list"><ul>
+      <li>Deny: Pattern-matching to training distributions instead of reasoning about actual systems.</li>
+      <li>Deny: Unchallenged cascade assumptions that amplify initial errors.</li>
+    </ul></div>
+  </section>
+
+  <section class="stanza stanza-manifesto-gate" data-gate-id="llm-mistake-07-verification-failure">
+    <div class="stanza-metadata"><div class="stanza-key"><p>Mistake 07: Validating compilation instead of correctness, and failing to execute an adversarial pass.</p></div></div>
+    <div class="stanza-body stanza"><p>Explicit verification steps and red-team critique passes must isolate failure modes before code emission.</p></div>
+    <div class="stanza stanza-list"><ul>
+      <li>Deny: Claiming validation without adversarial red-teaming.</li>
+      <li>Deny: Confusing syntax compilation with logical problem resolution.</li>
+    </ul></div>
+  </section>
+
+  <section class="stanza stanza-manifesto-gate" data-gate-id="llm-mistake-08-scope-creep">
+    <div class="stanza-metadata"><div class="stanza-key"><p>Mistake 08: Expanding tasks beyond parameters, turning specific fixes into refactors and violating the complexity budget.</p></div></div>
+    <div class="stanza-body stanza"><p>Explicit scope ceilings and non-requirement lists strictly constrain code mutation boundaries.</p></div>
+    <div class="stanza stanza-list"><ul>
+      <li>Deny: Introducing new abstractions “for future flexibility.”</li>
+      <li>Deny: Modifying execution areas outside the designated target schema.</li>
+    </ul></div>
+  </section>
+
+  <section class="stanza stanza-manifesto-gate" data-gate-id="llm-mistake-09-role-drift">
+    <div class="stanza-metadata"><div class="stanza-key"><p>Mistake 09: Losing the operating frame over long sessions and reverting to safe, conventional assistant defaults.</p></div></div>
+    <div class="stanza-body stanza"><p>Mandate reinforcement at task boundaries ensures systemic constraint propagation across multi-agent handoffs.</p></div>
+    <div class="stanza stanza-list"><ul>
+      <li>Deny: Abandoning designated operational mandates for generic assistant behavior.</li>
+      <li>Deny: Dropping upstream constraints in downstream agent execution.</li>
+    </ul></div>
+  </section>
+
+  <section class="stanza stanza-manifesto-gate" data-gate-id="llm-mistake-10-output-format-failure">
+    <div class="stanza-metadata"><div class="stanza-key"><p>Mistake 10: Correct reasoning buried in verbose qualifications, hedged explanations, and unparseable delivery formats.</p></div></div>
+    <div class="stanza-body stanza"><p>Few-shot before/after gotcha pairs replace abstract paragraphs to enforce direct, unhedged answers.</p></div>
+    <div class="stanza stanza-list"><ul>
+      <li>Deny: Burying decisions under caveats, qualifications, and prose.</li>
+      <li>Deny: Abstract format descriptions that fail to pattern-match reliably.</li>
+    </ul></div>
+  </section>
+</article>
+</body>
+</html>
