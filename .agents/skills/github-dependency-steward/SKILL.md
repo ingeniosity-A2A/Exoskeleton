@@ -12,7 +12,7 @@ Read `docs/DEPENDENCY_LEDGER.md` first. The ledger names the inspected base comm
 - Use `gh` as the authenticated, low-bandwidth interface for GitHub repository metadata, commits, releases, advisories, and GitHub-hosted skills.
 - Use pnpm, Cargo, pip, or another declared ecosystem manager only for that ecosystem's dependency graph, resolution, installation, and lockfile. `gh` does not replace these tools.
 - Rev.Ike is read-only: inspect, classify, and propose. It must not write a lockfile, install/update a skill, accept its own recommendation, authorize network or shell operations, or execute an update.
-- The delegated maintenance bot may prepare evidence and a patch only within its granted scope. Require operator/Ava-007 approval before package/skill installation, version changes, merge, publication, or deployment.
+- The delegated maintenance bot owns recurring checks and update news. After the pnpm package-manager/lockfile mismatch in the ledger is reconciled and baseline checks pass, it may automatically prepare stable pnpm patch/minor updates on a dedicated review branch and run validation. Stop for major pnpm changes, failed/missing validation, or changes outside this pnpm policy. Do not merge, publish, or deploy automatically.
 - Never add tokens to files, command arguments, logs, or report output. Do not add GitHub Actions or a new always-on Exoskeleton daemon for this workflow.
 
 ## Audit procedure
@@ -34,6 +34,12 @@ Read `docs/DEPENDENCY_LEDGER.md` first. The ledger names the inspected base comm
 6. Fail closed on any source ambiguity, lock drift, missing license evidence, target incompatibility, or failed validation. Report the evidence and a bounded next step; do not silently select a replacement.
 7. For a GitHub-hosted skill, run `gh skill preview OWNER/REPO SKILL` and inspect its full content, permissions, references, scripts, and license before proposing installation. Record repository, skill name, reviewed commit, and destination. Treat the `gh skill` command family as preview-versioned and check local help before relying on it. Do not run `gh skill update --all` unattended.
 8. Return the full ledger delta and exact commands, including unchanged entries, what was not downloaded, bytes where known, risks, tests required, and rollback instructions. No “PASS” without reproducible validation output.
+
+## pnpm release news and safe automation
+
+- Track the official repository [pnpm/pnpm](https://github.com/pnpm/pnpm). Once the ledger's pnpm/lockfile mismatch is repaired and baseline validation exists, check stable releases weekly and send the operator concise release notes, compatibility findings, and status.
+- For stable patch/minor releases only, automatically update `packageManager` and its lockfile together on a dedicated branch, run all declared validation, and report the branch and rollback commit. Never auto-merge or deploy.
+- For major releases, stop after the evidence report and wait for direction. The same applies if the lockfile is stale/incomplete, the baseline cannot be validated, or the target runtime is unsupported.
 
 ## Low-bandwidth GitHub checks
 

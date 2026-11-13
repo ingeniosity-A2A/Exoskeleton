@@ -2,7 +2,7 @@
 
 **Purpose:** give a delegated dependency-maintenance bot one source-linked inventory and a fail-closed audit starting point. GitHub CLI (`gh`) is the bot's interface for GitHub-hosted source, release, and skill inspection. Ecosystem package managers remain responsible for resolving packages and producing lockfiles; `gh` is not a replacement for pnpm, Cargo, or pip.
 
-**Authority:** Rev.Ike may inspect, compare, and propose dependency or skill changes. It cannot install, update, accept, authorize, or execute them. A delegated maintenance bot may prepare a report and patch; Ava-007/operator approval remains required before changing dependency versions, installing skills, merging, or publishing. No Exoskeleton daemon or GitHub Actions workflow is required for this delegation model.
+**Authority:** Rev.Ike may inspect, compare, and propose dependency or skill changes. It cannot install, update, accept, authorize, or execute them. The delegated maintenance bot owns recurring dependency checks and news. Once the lockfile/package-manager mismatch below is repaired and its baseline validation passes, the bot is authorized to apply pnpm stable patch/minor updates in a review branch, run validation, and send a concise report. It must stop for pnpm major updates, failed/absent validation, or any other dependency change outside that policy. No automatic merge, publish, deployment, or Exoskeleton daemon is authorized or required.
 
 ## Snapshot and known blocker
 
@@ -50,6 +50,10 @@ These tools are tracked separately so the bot does not confuse an installed oper
 ## Dependency-skill sources
 
 No third-party dependency skills were found in the inspected `origin/main` tree. The repository skill added alongside this ledger is local Exoskeleton guidance, not an external dependency. For a proposed GitHub-hosted skill, record its exact repository, skill name, reviewed commit, license, and installed path; preview it with `gh skill preview OWNER/REPO SKILL` before installation. `gh skill` is currently documented by GitHub CLI as a preview feature, so the delegated bot must check `gh skill --help` and confirm supported behavior on its installed version before use.
+
+## pnpm news and automatic update policy
+
+The official source is [pnpm/pnpm](https://github.com/pnpm/pnpm). After the version/lockfile mismatch is reconciled, the delegated bot checks stable pnpm releases weekly with `gh release list`/`gh release view`, sends release notes and compatibility findings, and may automatically prepare patch/minor updates on a dedicated branch. It updates `packageManager` and the lockfile together, runs the repository's declared validation, and reports the branch, diff, result, and rollback commit. Major releases, failed checks, missing validation, or changes to other dependencies are reported for operator decision. The bot never merges or deploys automatically.
 
 ## Refresh protocol
 
