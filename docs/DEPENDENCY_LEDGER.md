@@ -47,6 +47,15 @@ These tools are tracked separately so the bot does not confuse an installed oper
 | Headscale | No executable found in the inspected Termux PATH | [juanfont/headscale](https://github.com/juanfont/headscale) | Alternative self-hosted Tailscale-compatible coordination server; not installed |
 | Rustunnel | No executable found in the inspected Termux PATH | [joaoh82/rustunnel](https://github.com/joaoh82/rustunnel) | Optional service tunnel; not a general-purpose phone internet exit |
 
+## Mandatory Tailscale policy-bot sources
+
+| Source | Role | Implementation status |
+|---|---|---|
+| [tailscale/hujson](https://github.com/tailscale/hujson) | Official Go HuJSON parser/formatter/standardizer; must be pinned and bundled with the Tailscale policy bot for parsing, formatting, standardization, validation, and policy diffs | Required; not yet integrated or version-pinned |
+| [tailscale/tailscale-skill](https://github.com/tailscale/tailscale-skill) | Official upstream skill source to inspect and selectively adopt into the delegated Tailscale bot | Source verified; not installed or reviewed yet |
+
+HuJSON syntax validation alone does not validate Tailscale grant semantics. The bot must parse with the official bundled HuJSON implementation, then check policy structure, test cases, grant effects, and the intended route before proposing a change.
+
 ## Dependency-skill sources
 
 No third-party dependency skills were found in the inspected `origin/main` tree. The repository skill added alongside this ledger is local Exoskeleton guidance, not an external dependency. For a proposed GitHub-hosted skill, record its exact repository, skill name, reviewed commit, license, and installed path; preview it with `gh skill preview OWNER/REPO SKILL` before installation. `gh skill` is currently documented by GitHub CLI as a preview feature, so the delegated bot must check `gh skill --help` and confirm supported behavior on its installed version before use.
@@ -58,7 +67,7 @@ The official source is [pnpm/pnpm](https://github.com/pnpm/pnpm). After the vers
 ## Refresh protocol
 
 1. Fetch the intended Exoskeleton branch and record its exact commit. Refuse to operate on a dirty or divergent checkout unless the owner explicitly directs otherwise.
-2. Enumerate all active manifests and lockfiles, including transitive lockfile entries. For every package, record ecosystem, declared/resolved version, direct/transitive status, official upstream GitHub URL (or `not hosted on GitHub`), license source, and update evidence. Do not guess repositories from package names. The inspected lockfile is incomplete, so this snapshot cannot enumerate resolved transitives; do not fabricate them.
+2. Enumerate all active manifests and lockfiles, including transitive lockfile entries, and the bot's pinned/bundled libraries and skills. For every package or skill, record ecosystem, declared/resolved version or reviewed commit, direct/transitive status, official upstream GitHub URL (or `not hosted on GitHub`), license source, and update evidence. Do not guess repositories from package names. The inspected lockfile is incomplete, so this snapshot cannot enumerate resolved transitives; do not fabricate them.
 3. Use authenticated, read-only `gh` queries for GitHub source and release metadata. Cache and select only required fields. Compare tags/releases and the default-branch commit against the pinned revision; a release tag is a candidate, not evidence of compatibility.
 4. Report every candidate as one of: unchanged/current; compatible update candidate; breaking/major candidate; security advisory; archived/unmaintained; source/license ambiguity; manifest-lock mismatch; unsupported target; or validation failure. Include evidence, impact, download estimate, rollback path, and exact commands. Unknown or conflicting evidence means **blocked**, not pass.
 5. Do not download release assets, install packages/skills, alter manifests or lockfiles, merge, publish, or deploy during discovery. After explicit approval, use the repository's package manager to resolve and install versions, then run the specified validation and prepare a reviewable patch.

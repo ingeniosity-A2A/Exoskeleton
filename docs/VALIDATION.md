@@ -99,3 +99,10 @@ gh api repos/ingeniosity-A2A/Exoskeleton/commits/main --jq '.sha'
 gh api repos/ingeniosity-A2A/Exoskeleton/git/commits/fdffc34bbe99e3f36fba6be9143f70afcd083ac2 --jq '.tree.sha'
 gh repo view microsoft/TypeScript --json nameWithOwner,url,isArchived,licenseInfo
 ```
+
+
+## Tailscale policy steward contract
+
+Audit date: 2026-11-13. The local tailscale-policy-steward skill was added to require a Grant review on every exit-node/policy task and official bundled tailscale/hujson parsing, formatting, standardization, validation, and structured diffs. `gh repo view` verified the official https://github.com/tailscale/hujson and https://github.com/tailscale/tailscale-skill source repositories. This verifies source URL resolution only; no library was pinned or embedded, no skill was installed, no live tailnet policy was retrieved or changed, and no Grant was applied. Current policy and intended client/exit-node scope are still required before any policy mutation.
+
+Tailscale's current policy documentation says custom policies need access to autogroup:internet for exit-node use; a Grant without via can expose every configured exit node. Treat a Grant check/update as mandatory, but do not create a duplicate or broad rule if existing Grants already permit the intended use. See https://tailscale.com/docs/features/exit-nodes and https://tailscale.com/docs/features/access-control/grants/grants-explained.
