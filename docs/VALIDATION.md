@@ -84,3 +84,18 @@ These are **[C] implemented test orchestration and native microbenchmark code**.
 - Schema application is included in the kinetic runner after `schema_20.sql` and `schema_kinetic.sql`.
 
 Status: **[C] source and schema committed; not yet compiled, migrated, integration-tested, or benchmarked.** Receipt references are not cryptographic verification. AVA-007 remains the sole authority; the runtime must verify the receipt before committing accepted/authorized state.
+
+
+## Dependency stewardship snapshot
+
+Audit date: 2026-11-13. Exoskeleton `main` was inspected at `fdffc34bbe99e3f36fba6be9143f70afcd083ac2`. The local workspace was at `815ffc1d388cb77520dc06ebec37572681ab94ee`, with existing uncommitted work preserved on backup branch `backup/local-progress-815ffc1-2026-11-13` (latest backup commit `3f78763096e12489e68dd2bed88c12aab84f0591`). `gh` 2.103.3 was authenticated. The eight declared dependency source repositories in `docs/DEPENDENCY_LEDGER.md` were verified through `gh repo view`; this confirms the repository URLs resolve, not license compliance, latest versions, compatibility, or update status. The local skill was discovered with `gh skill list --scope project --json skillName,path,scope,sourceURL,version`.
+
+Finding: current upstream `package.json` specifies pnpm 9.15.0 while `pnpm-lock.yaml` records 12.10.0 and omits workspace dependency importers. `Cargo.toml` declares optional TurboVec 1.1.2 without a `Cargo.lock` in the inspected tree. These mismatches block automatic dependency updates until reconciled and baseline validation exists. No dependency or skill update was installed or tested.
+
+Reproduce the read-only checks with:
+
+```sh
+gh api repos/ingeniosity-A2A/Exoskeleton/commits/main --jq '.sha'
+gh api repos/ingeniosity-A2A/Exoskeleton/git/commits/fdffc34bbe99e3f36fba6be9143f70afcd083ac2 --jq '.tree.sha'
+gh repo view microsoft/TypeScript --json nameWithOwner,url,isArchived,licenseInfo
+```
