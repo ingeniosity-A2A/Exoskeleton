@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Exoskeleton/MiMo-Bot/lead_selector.py
+Exoskeleton/MiMo-Agent/lead_selector.py
 
-Lead Bot Selector
+Lead Interface Selector
 
 "Whichever one has direct documentation knowledge is the lead bot."
 
-The collapsed bot has three faces (CLI, MCP, API). For each dependency
+MiMo is an agent with three faces (CLI, MCP, API). For each dependency
 on each host, one face becomes the LEAD — the one that has direct
 documentation knowledge for that host.
 
@@ -79,7 +79,7 @@ class LeadDecision:
 class LeadSelector:
     """
     Evaluates which interface has direct documentation knowledge
-    and assigns it as the lead bot for a given host.
+    and assigns it as the lead for a given host.
     """
 
     def __init__(self, host_profile: str):
@@ -316,4 +316,4 @@ def write_host_profiles():
 if __name__ == "__main__":
     write_host_profiles()
     print("\nLead selector ready.")
-    print("Rule: Whichever interface has direct documentation knowledge is the lead bot.")
+    print("Rule: Whichever interface has direct documentation knowledge is the lead.")
