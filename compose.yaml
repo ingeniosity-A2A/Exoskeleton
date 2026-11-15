@@ -7,7 +7,7 @@
 # domains, published ports and the nginx dashboard belong to the Edge
 # Computing repository:
 #
-#   ingensity-A2A/MA-Edge-Computing → ops/network/exoskeleton-agent/
+#   ingeniosity-A2A/MA-Edge-Computing → ops/network/exoskeleton-agent/
 #     compose.override.yaml   (network, labels, ports, dashboard)
 #     README.md               (how to apply it)
 #
