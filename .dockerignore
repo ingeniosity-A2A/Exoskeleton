@@ -1,0 +1,7 @@
+.git
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.venv
+Dependencies/dependency_index.db
+INDEX.md

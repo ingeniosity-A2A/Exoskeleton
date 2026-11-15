@@ -1,0 +1,29 @@
+# GPU Compute Node
+host: gpu_compute_node
+preferred_comm: vsock
+interface_priority:
+  - mcp    # MCP has model cards and tool schemas
+  - api    # API for inference endpoints
+  - cli    # CLI for orchestration
+
+mcp_dependencies:
+  - stanza
+  - ollama
+  - vllm
+  - tensorrt
+
+api_dependencies:
+  - nvidia-aerial
+  - holoscan
+
+cli_dependencies:
+  - nvidia-smi
+  - cuda
+  - docker
+  - kiri
+  - gh
+
+network:
+  vsock: true
+  gpu_direct: true
+  compute_budget: high

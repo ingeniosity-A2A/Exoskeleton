@@ -1,0 +1,32 @@
+# S26 Ultra Termux Edge
+host: s26_ultra_termux
+preferred_comm: websocket
+interface_priority:
+  - cli    # Termux has direct CLI documentation (man, --help, pkg)
+  - mcp    # MCP for model interaction
+  - api    # API least documented on edge devices
+
+# On this host, the CLI is the lead for most dependencies
+# because Termux provides direct man pages and --help output.
+cli_dependencies:
+  - kiri
+  - tailscale
+  - duckdb
+  - gh
+  - git
+  - python
+  - rust
+
+mcp_dependencies:
+  - stanza
+  - ollama
+
+api_dependencies:
+  - cloudflare
+  - telnyx
+
+network:
+  tailscale: true
+  termux_api: true
+  battery_aware: true
+  compute_budget: low
