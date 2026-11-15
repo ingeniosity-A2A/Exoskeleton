@@ -1,0 +1,117 @@
+# ============================================================================
+# Exoskeleton/compose.yaml
+# ============================================================================
+# Kiri Compose Stack — Headless GitHub CLI Agent (Autonomous)
+#
+# Runs on Kiri (https://docs.runkiri.com/docker/compose/):
+#   - `kiri compose up -d` (Docker's own CLI works too; Kiri serves the
+#     Docker Engine API, so compose files are unchanged)
+#   - Compose services answer at <service>.<project>.kiri.local
+#   - a `dev.kiri.domain` label picks a container's own short name
+#   - healthchecks and `depends_on: condition: service_healthy` are supported
+#
+# Usage:
+#   export GH_TOKEN=...          # required: headless gh auth
+#   kiri compose up -d
+#   kiri compose logs -f agent
+#   kiri compose down
+#
+# Reachable at:
+#   http://agent.exoskeleton.kiri.local       (agent /health, /status, /audit)
+#   http://dashboard.exoskeleton.kiri.local   (rendered INDEX.md)
+#   http://localhost:9090                     (published port, all interfaces)
+#
+# ── About the DuckDB services ───────────────────────────────────────────────
+# DuckDB is an embedded, single-writer library, not a network server. Its
+# official image (duckdb/duckdb:2.0.0 on Docker Hub, distroless) is the CLI
+# only: it has no HTTP listener, no 9999 port, and no /health endpoint, so a
+# `depends_on: service_healthy` on it can never succeed. A pinned
+# ghcr.io/duckdb/duckdb image does not exist either.
+#
+# The index is therefore owned by the agent process that opens it, exactly as
+# gh_headless_agent.py does with duckdb.connect(). The long-term lake file is
+# bind-mounted from the repo so the committed .db stays the source of truth
+# and INDEX.md remains a render of it. If you later want a separate DB
+# process, DuckDB's Quack remote protocol (beta as of 1.5.2, targeting 2.0)
+# is the supported client-server path — not an HTTP sidecar on the CLI image.
+# ============================================================================
+
+services:
+
+  # ── Headless GitHub CLI Agent ──────────────────────────────────────────
+  # Autonomous: indexes dependencies into DuckDB, queries GitHub, renders
+  # INDEX.md. restart: unless-stopped is the self-healing half.
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: exoskeleton/headless-github-cli-agent:0.1.0
+    container_name: exoskeleton-github-agent
+    restart: unless-stopped
+    networks:
+      - exoskeleton
+    labels:
+      dev.kiri.domain: agent.exoskeleton    # → http://agent.exoskeleton.kiri.local
+    ports:
+      - "9090:9090"                  # Agent health/status endpoint
+    environment:
+      # ── GitHub CLI headless config ──────────────────────────────────
+      GH_TOKEN: "${GH_TOKEN:?Set GH_TOKEN before starting}"
+      GH_PROMPT_DISABLED: "true"
+      GH_NO_UPDATE_NOTIFIER: "true"
+      NO_COLOR: "1"
+      GIT_TERMINAL_PROMPT: "0"
+
+      # ── Agent config ────────────────────────────────────────────────
+      AGENT_MODE: "autonomous"
+      AGENT_POLL_INTERVAL: "300"     # 5 minutes between autonomous cycles
+      AGENT_AUTO_VERIFY: "true"
+      AGENT_AUTO_RENDER: "true"
+      AGENT_SELF_HEAL: "true"
+      AGENT_LOG_LEVEL: "info"
+
+      # ── Dependency index (DuckDB file, not a server) ────────────────
+      DUCKDB_PATH: "/workspace/Dependencies/dependency_index.db"
+      SCHEMA_PATH: "/workspace/Memory/schemas/dependency_index.sql"
+      INDEX_PATH: "/workspace/INDEX.md"
+
+      # ── Host-aware routing ──────────────────────────────────────────
+      HOST_PROFILE: "${HOST_PROFILE:-any}"
+    volumes:
+      # The index and its render are repo state: write them back to the repo.
+      - .:/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ── Monitoring Dashboard ──────────────────────────────────────────────
+  # Serves the rendered INDEX.md (and the dependency directory listing).
+  dashboard:
+    image: nginx:alpine
+    container_name: exoskeleton-dashboard
+    restart: unless-stopped
+    networks:
+      - exoskeleton
+    labels:
+      dev.kiri.domain: dashboard.exoskeleton  # → http://dashboard.exoskeleton.kiri.local
+    ports:
+      - "8080:80"
+    volumes:
+      - ./INDEX.md:/usr/share/nginx/html/index.html:ro
+      - ./Dependencies:/usr/share/nginx/html/deps:ro
+    depends_on:
+      agent:
+        condition: service_healthy
+
+# ── Networks ────────────────────────────────────────────────────────────────
+networks:
+  exoskeleton:
+    driver: bridge

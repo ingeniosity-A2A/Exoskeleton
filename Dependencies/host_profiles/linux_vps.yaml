@@ -1,0 +1,29 @@
+# Linux VPS / Router
+host: linux_vps
+preferred_comm: tailnet
+interface_priority:
+  - api    # VPS has OpenAPI specs and endpoint schemas
+  - cli    # CLI secondary
+  - mcp    # MCP tertiary
+
+api_dependencies:
+  - nginx
+  - cloudflare
+  - telnyx
+  - headscale
+
+cli_dependencies:
+  - tailscale
+  - docker
+  - kiri
+  - gh
+  - duckdb
+
+mcp_dependencies:
+  - stanza
+
+network:
+  tailscale: true
+  headscale: true
+  nginx: true
+  compute_budget: medium
