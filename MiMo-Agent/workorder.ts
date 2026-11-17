@@ -2,16 +2,13 @@
 /**
  * workorder.ts: one-sheet runner for the "service repairman" delegate model.
  *
- *   main agent / you  --add-->  DuckDB ledger  --run-->  delegate (one CLI, one session)
+ *   main agent / you  --add-->  DuckDB ledger  --run-->  delegate (one model session, one CLI)
  *                                   ^                          |
  *                                   +------ report + follow-up order <-----+
  *
  * Setup:   pnpm add @duckdb/node-api && pnpm add -D tsx typescript @types/node
- * Needs:   `claude` (Claude Code), `gh`, `tailscale` on PATH and already authenticated.
- *          `claude` may instead be pointed at an Anthropic-compatible gateway:
- *          ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN, and ANTHROPIC_API_KEY="" (empty, not
- *          unset). Pin ANTHROPIC_MODEL there — one measured turn cost ~$0.001 on a
- *          haiku-class model and ~$0.08 on the default opus-class one.
+ * Needs:   OPENROUTER_API in the environment, and `gh` / `tailscale` on PATH.
+ *          The model defaults to xiaomi/mimo-v2.6-pro; override with WO_MODEL.
  *
  * Usage:
  *   tsx workorder.ts add gh        read   "what changed in ingeniosity-A2A/Exoskeleton since the last tag"
@@ -22,28 +19,30 @@
  *   tsx workorder.ts status               # orders + latest reports
  *
  * Rules baked in:
- *   - A delegate is one headless session limited to ONE CLI by an allowlist. Session ends with the report.
+ *   - The model is MiMo. It has exactly one tool, run_cli, and this runner enforces the
+ *     allowlist — no other agent harness and no shell is involved.
+ *   - Commands are tokenised and spawned without a shell, so `;`, `&&`, pipes, redirects,
+ *     `$(...)` and backticks are inert rather than merely discouraged.
  *   - read orders run automatically. change orders are held as needs_decision until `approve`.
- *   - Connectivity-breaking commands (tailscale up/down/logout, ACL edits) are not in any allowlist.
+ *   - Connectivity-breaking commands (tailscale up/down/logout, ACL edits) are in no allowlist.
  *     They can only come back as a proposal in the report.
  *   - Reports are written to DuckDB. A failed report may create ONE follow-up order, depth-capped.
  *
  * Checked against the real tools before relying on it (2026-11-17):
- *   - claude 2.1.316: --allowedTools is `<tools...>` (each rule its own argv entry; the help
- *     text also accepts a comma- or space-separated single value), --output-format json emits
- *     {result, session_id, total_cost_usd, is_error, subtype}, --max-turns is print-mode only.
- *     A delegate run that cannot authenticate still exits 0 with is_error: true, so is_error
- *     and subtype are checked instead of the exit code alone.
+ *   - OpenRouter advertises tools and tool_choice for xiaomi/mimo-v2.5, -v2.6-flash,
+ *     -v2.6-pro and -v2.6-pro-ultraspeed. A live call to xiaomi/mimo-v2.6-pro returned
+ *     finish_reason "tool_calls" with {"command":"gh --version"} for $0.0000835.
  *   - @duckdb/node-api 2.0.0-r.1: DuckDBInstance.create(path), instance.connect(),
  *     run(sql, values) with `?` positional binding, runAndReadAll(...).getRowObjectsJson().
  *   - Top-level `await` is not available in a .ts file under tsx unless the package is ESM,
  *     so the open/CLI path runs inside main(); this keeps the file usable from a CJS package.
- *   - One real gh session has run through this runner end to end, on an unauthenticated gh:
- *     the allowlist held, the JSON report was extracted and written to the ledger, and the
- *     order landed as done with verdict answered. A command outside the allowlist is blocked
- *     and the technician reports from what it could not run.
- *   - Not exercised: a tailscale delegate, a change order actually executed, and the
- *     follow-up spawn path (no failing delegate has returned a followup yet).
+ *   - Live sessions on this host: `gh auth status` and `gh --version` ran through run_cli and the
+ *     report answered from their real output; a run_cli call for `ls /tmp` was refused by this
+ *     runner and the technician reported the refusal instead of the listing; `gh --version;
+ *     rm -rf <file>` executed only the allowed half and left the file in place. Observed cost
+ *     per order: $0.0005 to $0.0011 on xiaomi/mimo-v2.6-pro.
+ *   - Not exercised: a tailscale delegate, a change order actually executed, and the follow-up
+ *     spawn path (answered and needs_decision both count as a successful order).
  */
 import { DuckDBInstance, type DuckDBConnection } from "@duckdb/node-api";
 import { spawn } from "node:child_process";
@@ -51,43 +50,48 @@ import { randomUUID } from "node:crypto";
 
 // ---------- config ----------
 const DB_PATH = process.env.WO_DB ?? "workorders.duckdb";
-const MAX_TURNS = process.env.WO_MAX_TURNS ?? "12";
-const TIMEOUT_MS = Number(process.env.WO_TIMEOUT_MS ?? 180_000);
+const MODEL = process.env.WO_MODEL ?? "xiaomi/mimo-v2.6-pro";
+const API_BASE = process.env.WO_API_BASE ?? "https://openrouter.ai/api/v1";
+const API_KEY = process.env.OPENROUTER_API ?? process.env.OPENROUTER_API_KEY ?? "";
+const MAX_TURNS = Number(process.env.WO_MAX_TURNS ?? 8);        // tool-calling rounds
+const TIMEOUT_MS = Number(process.env.WO_TIMEOUT_MS ?? 60_000); // per command
 const MAX_DEPTH = 2; // follow-up chain cap
+const OUTPUT_LIMIT = 4000; // characters fed back to the model per command
 
 type Delegate = "gh" | "tailscale";
 type Mode = "read" | "change";
 
-// Allowlists ARE the permission layer. Keep them narrow.
+// Allowlists ARE the permission layer. Each rule is a token prefix; a trailing `*`
+// allows further arguments, and a rule without one must match the whole command.
 const ALLOW: Record<Delegate, Record<Mode, string[]>> = {
   gh: {
     read: [
-      "Bash(gh repo view:*)", "Bash(gh repo list:*)",
-      "Bash(gh release list:*)", "Bash(gh release view:*)",
-      "Bash(gh issue list:*)", "Bash(gh issue view:*)",
-      "Bash(gh search:*)",
-      // Exact rules, no wildcard: `gh auth status --show-token` would print the token into the ledger.
-      "Bash(gh --version)", "Bash(gh auth status)",
-      // gh api is GET by default but takes -X POST/-X DELETE, so only the explicit GET form is read-only.
-      "Bash(gh api -X GET:*)",
+      "gh repo view *", "gh repo list *",
+      "gh release list *", "gh release view *",
+      "gh issue list *", "gh issue view *",
+      "gh search *",
+      // Exact rules: `gh auth status --show-token` would print the token into the ledger.
+      "gh --version", "gh auth status",
+      // gh api takes -X POST/-X DELETE, so read mode only allows the explicit GET form.
+      "gh api -X GET *",
     ],
     change: [
-      "Bash(gh repo view:*)", "Bash(gh release list:*)", "Bash(gh release view:*)",
-      "Bash(gh issue list:*)", "Bash(gh issue view:*)",
-      "Bash(gh issue create:*)", "Bash(gh issue comment:*)", "Bash(gh issue close:*)",
-      "Bash(gh release create:*)",
+      "gh repo view *", "gh release list *", "gh release view *",
+      "gh issue list *", "gh issue view *",
+      "gh issue create *", "gh issue comment *", "gh issue close *",
+      "gh release create *", "gh api *",
     ],
   },
   tailscale: {
     read: [
-      "Bash(tailscale status:*)", "Bash(tailscale netcheck:*)", "Bash(tailscale ping:*)",
-      "Bash(tailscale ip:*)", "Bash(tailscale whois:*)", "Bash(tailscale version:*)",
-      "Bash(tailscale bugreport:*)", "Bash(tailscale dns status:*)",
+      "tailscale status *", "tailscale netcheck *", "tailscale ping *",
+      "tailscale ip *", "tailscale whois *", "tailscale version *",
+      "tailscale bugreport *", "tailscale dns status *",
     ],
     // No up / down / logout / ACL. `set` flags are reversible by running `set` again.
     change: [
-      "Bash(tailscale status:*)", "Bash(tailscale netcheck:*)", "Bash(tailscale ping:*)",
-      "Bash(tailscale set:*)",
+      "tailscale status *", "tailscale netcheck *", "tailscale ping *",
+      "tailscale set *",
     ],
   },
 };
@@ -129,6 +133,54 @@ async function addOrder(
   return id;
 }
 
+// ---------- allowlist ----------
+// No shell is used, so quoting is the only thing the tokeniser has to understand.
+function tokenise(command: string): string[] {
+  const out: string[] = [];
+  let cur = "", quote: "'" | '"' | null = null;
+  for (const ch of command.trim()) {
+    if (quote) {
+      if (ch === quote) quote = null; else cur += ch;
+    } else if (ch === "'" || ch === '"') {
+      quote = ch;
+    } else if (/\s/.test(ch)) {
+      if (cur) { out.push(cur); cur = ""; }
+    } else {
+      cur += ch;
+    }
+  }
+  if (quote) throw new Error(`unbalanced quote in command: ${command}`);
+  if (cur) out.push(cur);
+  return out;
+}
+
+function isAllowed(tokens: string[], rules: string[]): boolean {
+  return rules.some((rule) => {
+    const parts = rule.split(" ");
+    const prefix = parts[parts.length - 1] === "*" ? parts.slice(0, -1) : parts;
+    const exact = parts[parts.length - 1] !== "*";
+    if (exact && tokens.length !== prefix.length) return false;
+    return prefix.every((t, i) => tokens[i] === t);
+  });
+}
+
+async function runCli(tokens: string[]): Promise<string> {
+  const [program, ...args] = tokens;
+  return new Promise((resolve) => {
+    const child = spawn(program, args, { stdio: ["ignore", "pipe", "pipe"] });
+    let out = "";
+    const timer = setTimeout(() => child.kill("SIGKILL"), TIMEOUT_MS);
+    child.stdout.on("data", (d) => (out += d));
+    child.stderr.on("data", (d) => (out += d));
+    child.on("error", (e) => { clearTimeout(timer); resolve(`spawn failed: ${String(e.message)}`); });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      const body = out.length > OUTPUT_LIMIT ? `${out.slice(0, OUTPUT_LIMIT)}\n[truncated]` : out;
+      resolve(`exit ${code}\n${body}`);
+    });
+  });
+}
+
 // ---------- delegate ----------
 type Report = {
   verdict: "fixed" | "not_fixed" | "needs_decision" | "answered";
@@ -136,6 +188,22 @@ type Report = {
   proposal?: string;
   followup?: { delegate: Delegate; mode: Mode; intent: string };
 };
+
+type ToolCall = { id: string; function: { name: string; arguments: string } };
+type Message = Record<string, any>;
+
+const TOOL = [{
+  type: "function",
+  function: {
+    name: "run_cli",
+    description: "Run one command from the allowlist on this host and return its output.",
+    parameters: {
+      type: "object",
+      properties: { command: { type: "string", description: "the command line, e.g. gh auth status" } },
+      required: ["command"],
+    },
+  },
+}];
 
 function workOrderPrompt(o: Record<string, any>) {
   const cli = o.delegate as Delegate;
@@ -145,6 +213,7 @@ function workOrderPrompt(o: Record<string, any>) {
     `Mode: ${o.mode}. ${o.mode === "read"
       ? "Read-only. Do not change any state."
       : "You may change state, but only with the commands you are permitted. Record the exact undo for every change."}`,
+    `Your only tool is run_cli. It runs a single command on this host. A command outside the allowlist is refused and nothing is executed; do not try to work around a refusal.`,
     `Use the CLI's own help and output as the authority. Do not guess beyond what the CLI reports.`,
     `If a fix would need a command you cannot run (taking the node down, ACL edits, anything that could cut your own connection), do NOT attempt it. Put it in "proposal" and set verdict to "needs_decision".`,
     `Finish with ONLY one JSON object, no prose, shaped exactly:`,
@@ -153,25 +222,17 @@ function workOrderPrompt(o: Record<string, any>) {
   ].join("\n");
 }
 
-function runClaude(prompt: string, allowed: string[]) {
-  return new Promise<{ result: string; session_id?: string; total_cost_usd?: number }>((resolve, reject) => {
-    const args = [
-      "-p", prompt,
-      "--allowedTools", ...allowed,
-      "--output-format", "json",
-      "--max-turns", MAX_TURNS,
-    ];
-    const p = spawn("claude", args, { stdio: ["ignore", "pipe", "pipe"] });
-    let out = "", err = "";
-    const t = setTimeout(() => { p.kill("SIGKILL"); reject(new Error("delegate timeout")); }, TIMEOUT_MS);
-    p.stdout.on("data", (d) => (out += d));
-    p.stderr.on("data", (d) => (err += d));
-    p.on("close", (code) => {
-      clearTimeout(t);
-      if (code !== 0) return reject(new Error(`claude exited ${code}: ${err.slice(0, 500)}`));
-      try { resolve(JSON.parse(out)); } catch { reject(new Error("unparseable claude output")); }
-    });
+async function chat(messages: Message[]): Promise<{ message: Message; cost: number; id?: string }> {
+  const res = await fetch(`${API_BASE}/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${API_KEY}` },
+    body: JSON.stringify({ model: MODEL, messages, tools: TOOL, tool_choice: "auto" }),
   });
+  const body: any = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`model http ${res.status}: ${JSON.stringify(body).slice(0, 300)}`);
+  const choice = body.choices?.[0];
+  if (!choice) throw new Error(`model returned no choice: ${JSON.stringify(body).slice(0, 300)}`);
+  return { message: choice.message ?? {}, cost: body.usage?.cost ?? 0, id: body.id };
 }
 
 function extractReport(text: string): Report | null {
@@ -183,6 +244,51 @@ function extractReport(text: string): Report | null {
     } catch { /* keep scanning */ }
   }
   return null;
+}
+
+async function delegate(o: Record<string, any>) {
+  if (!API_KEY) throw new Error("OPENROUTER_API is not set");
+  const rules = ALLOW[o.delegate as Delegate][o.mode as Mode];
+  const messages: Message[] = [
+    { role: "system", content: workOrderPrompt(o) },
+    { role: "user", content: `Work order ${o.id}: ${o.intent}` },
+  ];
+
+  let cost = 0, transcript = "", sessionId: string | undefined;
+  for (let turn = 0; turn < MAX_TURNS; turn++) {
+    const { message, cost: c, id } = await chat(messages);
+    cost += c; sessionId = id ?? sessionId;
+    messages.push({ role: "assistant", content: message.content ?? null, tool_calls: message.tool_calls });
+
+    const calls: ToolCall[] = message.tool_calls ?? [];
+    if (!calls.length) {
+      transcript = String(message.content ?? "");
+      return { report: extractReport(transcript), raw: transcript, cost, sessionId };
+    }
+
+    for (const call of calls) {
+      let result: string;
+      try {
+        const args = JSON.parse(call.function?.arguments ?? "{}");
+        const command = String(args.command ?? "").trim();
+        const tokens = tokenise(command);
+        if (!tokens.length) {
+          result = "refused: empty command";
+        } else if (!isAllowed(tokens, rules)) {
+          result = `refused: \`${command}\` is not on the ${o.delegate} ${o.mode} allowlist. Allowed: ${rules.join(" | ")}`;
+        } else {
+          result = await runCli(tokens);
+        }
+        transcript += `$ ${command}\n${result}\n`;
+      } catch (e) {
+        result = `error: ${String((e as Error).message ?? e)}`;
+        transcript += `${result}\n`;
+      }
+      messages.push({ role: "tool", tool_call_id: call.id, content: result });
+    }
+  }
+
+  return { report: extractReport(transcript), raw: transcript || "turn limit reached with no report", cost, sessionId };
 }
 
 // ---------- scheduler ----------
@@ -205,15 +311,12 @@ async function runReady() {
     await db.run(`UPDATE orders SET status = 'running' WHERE id = ?`, [next.id] as any);
     console.log(`[${next.id}] ${next.delegate}/${next.mode}: ${next.intent}`);
 
-    let report: Report | null = null, raw = "", sid: string | undefined, cost: number | undefined;
+    let report: Report | null = null, raw = "", sid: string | undefined, cost = 0;
     try {
-      const res: any = await runClaude(workOrderPrompt(next), ALLOW[next.delegate as Delegate][next.mode as Mode]);
-      if (res.is_error || res.subtype !== "success")
-        throw new Error(`claude reported ${res.subtype ?? "error"}: ${String(res.result ?? "").slice(0, 300)}`);
-      raw = res.result ?? ""; sid = res.session_id; cost = res.total_cost_usd;
-      report = extractReport(raw);
+      const r = await delegate(next);
+      report = r.report; raw = r.raw; sid = r.sessionId; cost = r.cost;
     } catch (e) {
-      raw = String(e);
+      raw = String((e as Error).message ?? e);
     }
 
     const ok = !!report && report.verdict !== "not_fixed";
@@ -223,7 +326,7 @@ async function runReady() {
       [
         next.id, report?.verdict ?? "failed", report?.summary ?? raw.slice(0, 400),
         report?.evidence ?? "", JSON.stringify(report?.changes ?? []), JSON.stringify(report?.undo ?? []),
-        report?.proposal ?? "", raw, sid ?? "", cost ?? 0,
+        report?.proposal ?? "", raw, sid ?? "", cost,
       ] as any,
     );
     await db.run(`UPDATE orders SET status = ? WHERE id = ?`, [ok ? "done" : "failed", next.id] as any);
@@ -235,7 +338,7 @@ async function runReady() {
       const fid = await addOrder(f.delegate, f.mode === "change" ? "change" : "read", f.intent, [], next.depth + 1, next.id);
       console.log(`  follow-up ${fid} created from ${next.id}`);
     }
-    console.log(`  -> ${report?.verdict ?? "failed"}: ${report?.summary ?? raw.slice(0, 120)}`);
+    console.log(`  -> ${report?.verdict ?? "failed"}: ${report?.summary ?? raw.slice(0, 120)} ($${cost.toFixed(5)})`);
   }
 
   const held = await rows(`SELECT id, delegate, intent FROM orders WHERE status = 'needs_decision'`);
@@ -250,12 +353,12 @@ async function main() {
   const [cmd, ...a] = process.argv.slice(2);
 
   if (cmd === "add") {
-    const [delegate, mode, intent] = a;
-    if (!["gh", "tailscale"].includes(delegate) || !["read", "change"].includes(mode) || !intent)
+    const [delegateName, mode, intent] = a;
+    if (!["gh", "tailscale"].includes(delegateName) || !["read", "change"].includes(mode) || !intent)
       throw new Error(`usage: add <gh|tailscale> <read|change> "<intent>" [--depends id,id]`);
     const di = a.indexOf("--depends");
     const deps = di >= 0 ? a[di + 1].split(",") : [];
-    console.log(await addOrder(delegate as Delegate, mode as Mode, intent, deps));
+    console.log(await addOrder(delegateName as Delegate, mode as Mode, intent, deps));
   } else if (cmd === "run") {
     await runReady();
   } else if (cmd === "approve") {
