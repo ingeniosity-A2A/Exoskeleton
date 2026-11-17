@@ -8,6 +8,10 @@
  *
  * Setup:   pnpm add @duckdb/node-api && pnpm add -D tsx typescript @types/node
  * Needs:   `claude` (Claude Code), `gh`, `tailscale` on PATH and already authenticated.
+ *          `claude` may instead be pointed at an Anthropic-compatible gateway:
+ *          ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN, and ANTHROPIC_API_KEY="" (empty, not
+ *          unset). Pin ANTHROPIC_MODEL there — one measured turn cost ~$0.001 on a
+ *          haiku-class model and ~$0.08 on the default opus-class one.
  *
  * Usage:
  *   tsx workorder.ts add gh        read   "what changed in ingeniosity-A2A/Exoskeleton since the last tag"
@@ -34,10 +38,12 @@
  *     run(sql, values) with `?` positional binding, runAndReadAll(...).getRowObjectsJson().
  *   - Top-level `await` is not available in a .ts file under tsx unless the package is ESM,
  *     so the open/CLI path runs inside main(); this keeps the file usable from a CJS package.
- *   - Not exercised: the delegate sessions themselves (no authenticated `claude`, `gh` or
- *     `tailscale` on the machine that checked this), and permission handling for calls that
- *     are not on the allowlist. In print mode those are denied rather than prompted; older
- *     CLIs may instead wait, in which case add `--permission-prompts none` (v2.1.259+).
+ *   - One real gh session has run through this runner end to end, on an unauthenticated gh:
+ *     the allowlist held, the JSON report was extracted and written to the ledger, and the
+ *     order landed as done with verdict answered. A command outside the allowlist is blocked
+ *     and the technician reports from what it could not run.
+ *   - Not exercised: a tailscale delegate, a change order actually executed, and the
+ *     follow-up spawn path (no failing delegate has returned a followup yet).
  */
 import { DuckDBInstance, type DuckDBConnection } from "@duckdb/node-api";
 import { spawn } from "node:child_process";
@@ -60,6 +66,8 @@ const ALLOW: Record<Delegate, Record<Mode, string[]>> = {
       "Bash(gh release list:*)", "Bash(gh release view:*)",
       "Bash(gh issue list:*)", "Bash(gh issue view:*)",
       "Bash(gh search:*)",
+      // Exact rules, no wildcard: `gh auth status --show-token` would print the token into the ledger.
+      "Bash(gh --version)", "Bash(gh auth status)",
       // gh api is GET by default but takes -X POST/-X DELETE, so only the explicit GET form is read-only.
       "Bash(gh api -X GET:*)",
     ],
