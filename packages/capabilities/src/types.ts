@@ -21,11 +21,29 @@ export interface CapabilityObservation {
   latencyMs: number;
 }
 
+/**
+ * Structural subset of AbortSignal. The package pins no DOM/Node types, so the
+ * contract is expressed as the shape a provider may rely on.
+ */
+export interface CapabilitySignal {
+  readonly aborted: boolean;
+  addEventListener(type: 'abort', listener: () => void): void;
+  removeEventListener(type: 'abort', listener: () => void): void;
+}
+
 export interface CapabilityRequest {
   capability: string;
   input: Record<string, unknown>;
   /** Orchestrator generation for ledger correlation */
   generationId?: number;
+  /** Correlates provider work with lifecycle telemetry */
+  traceId?: string;
+  /**
+   * Aborted by the lifecycle on timeout or caller cancellation. A provider that
+   * honours it stops its own work; one that ignores it is reported as undrained
+   * rather than assumed stopped.
+   */
+  signal?: CapabilitySignal;
 }
 
 export interface CapabilityHandler {
