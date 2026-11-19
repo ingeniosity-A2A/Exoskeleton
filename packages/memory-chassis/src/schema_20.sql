@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS research_molecules (
   molecule_id        TEXT PRIMARY KEY,
   identity_did       TEXT NOT NULL,
   total_duration_ms  INTEGER DEFAULT 0,
-  created_at         INTEGER DEFAULT (unixepoch())
+  created_at         INTEGER DEFAULT (CAST(epoch(now()) AS INTEGER))
 );
 
 CREATE TABLE IF NOT EXISTS atomic_tweens (
@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS atomic_tweens (
   start_time_ms              BIGINT NOT NULL,
   duration_ms                BIGINT NOT NULL,
   easing_code_id             INTEGER NOT NULL DEFAULT 0,
-  orchestrator_generation_id BIGINT NOT NULL DEFAULT 0,
+  orchestrator_generation_id B
+IGINT NOT NULL DEFAULT 0,
   prev_tween_id              TEXT UNIQUE,
   next_tween_id              TEXT UNIQUE,
   FOREIGN KEY (molecule_id)    REFERENCES research_molecules(molecule_id),
@@ -45,7 +46,7 @@ CREATE TABLE IF NOT EXISTS turboquant_blocks (
   block_id    BIGINT PRIMARY KEY,
   molecule_id TEXT,
   dim         USMALLINT NOT NULL,
-  bit_width   UTINYINT  NOT NULL CHECK (bit_width BETWEEN 2 AND 4),
+  bit_width   UTINYINT   NOT NULL CHECK (bit_width BETWEEN 2 AND 4),
   codes       BLOB      NOT NULL
 );
 
@@ -125,7 +126,8 @@ CREATE TABLE IF NOT EXISTS embedded_skill_wal_cursor (
 CREATE TABLE IF NOT EXISTS dream_sessions (
   session_id         TEXT PRIMARY KEY,
   seed               BIGINT NOT NULL,
-  signature_block_id BIGINT,
+  signature_block_id B
+IGINT,
   molecule_id        TEXT,
   capability_class   TEXT DEFAULT 'generic',
   candidate_count    USMALLINT NOT NULL,
@@ -172,7 +174,7 @@ BEGIN
      easing_code_id, generation)
   VALUES
     (nextval('quack_seq'), NEW.tween_id, NEW.molecule_id, NEW.target_property, 'truncate',
-     NEW.start_time_ms, NEW.duration_ms, NEW.start_value, NEW.end_value,
+     NEW.start_time_ms, NEU.duration_ms, NEW.start_value, NEW.end_value,
      NEW.easing_code_id, NEW.orchestrator_generation_id);
 END;
 

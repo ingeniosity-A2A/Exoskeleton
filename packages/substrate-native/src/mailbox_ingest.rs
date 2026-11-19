@@ -87,7 +87,6 @@ mod tests {
     #[test]
     fn publish_snapshot_header_roundtrip() {
         let m = SharedVectorMailbox::new();
-        m.init();
         let codes = vec![0xAB, 0xCD, 0xEF, 0x01];
         publish_packed_block(&m, 7, 768, 4, &codes).unwrap();
         let mut out = Vec::new();

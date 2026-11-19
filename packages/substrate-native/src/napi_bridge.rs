@@ -13,9 +13,7 @@ thread_local! {
 #[no_mangle]
 pub extern "C" fn ava_mailbox_init() {
     MAILBOX.with(|m| {
-        let box_ = SharedVectorMailbox::new();
-        box_.init();
-        *m.borrow_mut() = Some(box_);
+        *m.borrow_mut() = Some(SharedVectorMailbox::new());
     });
 }
 
