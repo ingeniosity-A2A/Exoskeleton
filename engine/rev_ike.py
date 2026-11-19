@@ -71,7 +71,7 @@ class RevIkeZeroCopyIntake:
             yield {
                 "record_id": f"atom-uuid-{i:06d}",
                 "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
-                "agent_id": "librarian-rev-ike",
+                "agent_id": "subconscious-rev-ike",
                 "timestamp": time.time(),
                 "content": (
                     f"Intake block #{i}: "

@@ -19,7 +19,7 @@
 
 - [x] DuckDB schema and Quack-related code are present.
 - [x] Native mailbox and C ABI bridge source are present.
-- [x] Rev.Ike Python intake engine and TypeScript librarian package are present.
+- [x] Rev.Ike Python intake engine and TypeScript subconscious package are present.
 - [x] Capability registry and composition source are present.
 - [x] Temporal, vector and rubric-related source is present.
 

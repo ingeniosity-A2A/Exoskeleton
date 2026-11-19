@@ -19,7 +19,7 @@ export interface IntakeReport {
 }
 
 function enginePath(): string {
-  // packages/librarian/src -> repo root engine/rev_ike.py
+  // packages/subconscious/src -> repo root engine/rev_ike.py (Rev.Ike subconscious substrate)
   const here = path.dirname(fileURLToPath(import.meta.url));
   return path.resolve(here, '../../../engine/rev_ike.py');
 }

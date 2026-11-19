@@ -140,7 +140,7 @@ Verified paths in Exoskeleton `main` at the time of this record:
 - `packages/memory-chassis/src/kernel/TemporalSubstrate.ts` and `transition.ts` — temporal semantics and transition persistence.
 - `packages/memory-chassis/src/dream/dream_rsi.ts` — replay/candidate evaluation.
 - `packages/memory-chassis/src/types/CognitiveState.ts` — typed state contract.
-- `packages/librarian/` and `engine/rev_ike.py` — Rev.Ike intake/curation subsystem, subordinate to AVA-007 authority.
+- `packages/subconscious/` and `engine/rev_ike.py` — Rev.Ike subconscious substrate (intake/curation mechanics), subordinate to AVA-007 authority.
 
 The package modules are the current repository paths. Do not reintroduce the absent `apps/omnibus` tree or claim feed-only files are integrated. The feed integration and patch-status records remain the change ledger; their caveats remain in force.
 

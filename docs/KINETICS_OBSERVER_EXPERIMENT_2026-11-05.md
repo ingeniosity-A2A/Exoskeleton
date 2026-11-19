@@ -43,7 +43,7 @@ Observed repository structure includes:
 - `docs/VECTOR_CORE.md`
 - `engine/rev_ike.py`
 - `packages/capabilities/`
-- `packages/librarian/`
+- `packages/subconscious/`
 - `packages/memory-chassis/`
 - `packages/substrate-native/`
 

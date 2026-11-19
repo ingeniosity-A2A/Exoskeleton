@@ -1,0 +1,11 @@
+{
+  "name": "@exoskeleton/subconscious",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "REV.IKE subconscious substrate — headless intake, curation, provenance, grant-gated serving",
+  "main": "src/index.ts",
+  "scripts": {
+    "check": "echo \"subconscious package scaffold — no build yet\""
+  }
+}

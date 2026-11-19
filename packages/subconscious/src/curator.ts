@@ -1,6 +1,6 @@
 /**
  * REV.IKE curator functions — operate in place on the Exoskeleton chassis.
- * Name is REV.IKE; these are librarian task functions only.
+ * Name is REV.IKE; these are subconscious substrate task functions (intake, curation, provenance). REV.IKE is the subconscious, not a librarian.
  */
 
 export type ChassisConn = {
