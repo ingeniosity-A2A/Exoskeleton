@@ -52,7 +52,7 @@ Record bytes copied, allocations, throughput, p50/p95/p99 latency, peak memory, 
 
 Every measured entry must include:
 
-`date, commit_sha, OS, architecture, CPU, memory, compiler/runtime versions, optimization flags, workload, dataset shape, exact command, raw output, summary`
+`date, commit_sha, OS, architecture, CPU, memory, compiler/runtime versions, optimization flags, workload, dataset shape, exact command, raw output, summary`.
 
 ## Evidence log
 
