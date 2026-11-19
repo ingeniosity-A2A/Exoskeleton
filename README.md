@@ -1,71 +1,117 @@
 # Exoskeleton
 
-Structural interface and boundary for **Ava-007**, the 2nd Order Cybernetic Advanced AI Model.
+**The Exoskeleton does not hoard static prose. It maintains one index
+sheet and delegates retrieval to the Headless GitHub CLI Agent.**
 
-**Status: bootstrap.** Only claims backed by recorded command output (see `docs/VALIDATION.md`) are made. Unrun builds, tests, and benchmarks are unverified, never "passing".
-
-Claims need a dated source and a label: Official, Local evidence, Independent, or Interpretation.
-
----
-
-## Canonical Definition
-
-The authoritative definition of Ava-007 lives in the **Cybernetic-Ava007** repository, not here:
-
-→ `../Cybernetic-Ava007/docs/DECLARATION_OF_INTENT.md` (architecture)  
-→ `../Cybernetic-Ava007/docs/SELF_ALIGNMENT_9_MANIFESTOS.md` (stance)
-
-Those two documents are the source of truth. This repository (Exoskeleton) is the structural interface only. It does not own them.
+An autonomous, doctrinally-governed AI agent framework built on
+second-order cybernetics. Three planes. One Kiri runtime. Zero
+interactive prompts. Every claim passes through the epistemic gate
+before graduating from INFERRED to OBSERVED.
 
 ---
 
-## Repository Layout
+## What this is
+
+| Component | Purpose |
+|---|---|
+| **KICE** | Kinetic Intelligence Coupling Engine — couples specialized models at runtime without merging weights |
+| **Benchmarks** | Empirical gate — the only path from INFERRED to OBSERVED |
+| **Sensory/The_Beeper** | Tier 1 Sensory Edge — ingestion with full network metrics and epistemic provenance |
+| **Dependencies** | Headless GitHub CLI Agent — autonomous dependency indexing into DuckDB 2.0 |
+| **A2A-Networks** | Transport fabric — rustunnel, sync bridge, mesh controller |
+| **Memory** | Dual-band DuckDB — Short-Term Hot State + Long-Term Lake |
+| **sandbox** | All-in-one container for OpenCode execution |
+
+## Quick start
+
+```bash
+# Start the sandbox (Kiri Compose)
+export GH_TOKEN=ghp_your_token_here
+make -C sandbox up
+
+# Drop in
+make -C sandbox opencode
+
+# Run everything
+make kice-foil && make kice-budget && make status
+```
+
+## The Three Planes
 
 ```
-Exoskeleton/
-├── docs/
-├── packages/
-│   ├── memory-chassis/
-│   └── substrate-native/
-└── pnpm-workspace.yaml
+┌─────────────────────────────────────────────────────────┐
+│                   Kiri Runtime                          │
+│                                                         │
+│  Plane 1: Dependency Plane                              │
+│  ┌──────────────┐    ┌──────────────┐                  │
+│  │ GitHub Agent │───►│ DuckDB Index │                  │
+│  └──────────────┘    └──────────────┘                  │
+│                                                         │
+│  Plane 2: Sensory Plane                                 │
+│  ┌──────────────┐    ┌──────────────┐                  │
+│  │  The_Beeper  │───►│ Short-Term   │                  │
+│  │  (Tier 1)    │    │ DuckDB       │                  │
+│  └──────────────┘    └──────────────┘                  │
+│                                                         │
+│  Plane 3: Transport Plane                               │
+│  ┌──────────────┐    ┌──────────────┐                  │
+│  │ KICE Engine  │───►│ Long-Term    │                  │
+│  │ + Sovereign  │    │ Lake         │                  │
+│  └──────────────┘    └──────────────┘                  │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## Memory system and optimization source of truth
+## Documentation
 
-- [System Memory Source of Truth and Whole-System Optimization Contract](docs/SYSTEM_MEMORY_SOURCE_OF_TRUTH_AND_OPTIMIZATION_2026-11-05.md) — governing memory implementation map, DuckDB 2.0 evaluation, Arrow optionality, Quack distinction, whole-system benchmark and release gates.
+| Document | Contents |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Three-plane architecture, data flow, service mesh |
+| [docs/DOCTRINAL-STANDARDS.md](docs/DOCTRINAL-STANDARDS.md) | The Five Disciplines, deny rules, epistemic states |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Kiri Compose, sandbox, OpenCode integration |
+| [docs/API.md](docs/API.md) | All HTTP endpoints, CLI commands, Make targets |
+| [docs/EPISTEMIC-STATE-MACHINE.md](docs/EPISTEMIC-STATE-MACHINE.md) | INFERRED→OBSERVED graduation rules |
 
-- [Memory System Source Truth — 2026-11-05](docs/MEMORY_SYSTEM_SOURCE_TRUTH_2026-11-05.md)
-- [Layer 0 Memory Plane](docs/LAYER_0_MEMORY_PLANE.md)
-- [Vector Core](docs/VECTOR_CORE.md)
-- [Memory Governance + Liquid AI Integration Proposal](docs/MEMORY_GOVERNANCE_LIQUID_AI_INTEGRATION_PROPOSAL.md)
-- [Memory Subsystem Feed Integration](docs/MEMORY_SUBSYSTEM_FEED_INTEGRATION_2026-11-05.md)
-- [Memory Subsystem Patch Status](docs/MEMORY_SUBSYSTEM_PATCH_STATUS_2026-11-05.md)
-- [DFM and Distributed Coordination Implementation](docs/DFM_DISTRIBUTED_COORDINATION_IMPLEMENTATION.md) — experimental Rust support seams and explicit non-claims.
+## Directory guide
 
-## Research integration modules
+| Directory | README | What lives there |
+|---|---|---|
+| `KICE/` | [KICE/README.md](KICE/README.md) | Coupling engine, foil tests, benchmarks, sovereignty |
+| `Benchmarks/` | [Benchmarks/README.md](Benchmarks/README.md) | Empirical gate, epistemic foils, quarantine |
+| `Sensory/` | [Sensory/README.md](Sensory/README.md) | The_Beeper ingestion node |
+| `Dependencies/` | [Dependencies/README.md](Dependencies/README.md) | Headless GitHub CLI Agent |
+| `A2A-Networks/` | [A2A-Networks/README.md](A2A-Networks/README.md) | rustunnel, sync bridge, mesh |
+| `Memory/` | [Memory/README.md](Memory/README.md) | DuckDB dual-band architecture |
+| `Exoskeleton-Manifesto-Collection/` | [Manifesto README](Exoskeleton-Manifesto-Collection/README.md) | Ava-007 Manifesto, doctrinal source |
+| `MiMo-Bot/` | [MiMo-Bot README](MiMo-Bot/README.md) | Collapsed bot, lead selector |
+| `sandbox/` | [sandbox/README.md](sandbox/README.md) | Docker/Kiri sandbox for OpenCode |
 
-The substrate-native crate exports experimental modules for DFM promotion metadata, safety-constrained candidate selection, weighted neighbor updates, and digital packet aggregation. These are not a trained DFM model, a formal distributed-convergence implementation, or physical OTA-C. See the implementation note and validation dock before relying on them.
+## Epistemic states
 
+Every claim in this system has an epistemic state:
 
-## Android device execution boundary
+| State | Meaning | Can be promoted to OBSERVED? |
+|---|---|---|
+| **OBSERVED** | Measured from real I/O or benchmark | N/A (already there) |
+| **DERIVED** | Computed from OBSERVED values | Yes (with provenance) |
+| **INFERRED** | Reasoning from evidence, not measured | Yes (with benchmark) |
+| **HYPOTHESIZED** | Proposed but unverified | No (must become INFERRED first) |
 
-- [Android Device and Inference Runtime Boundary](docs/ANDROID_DEVICE_INFERENCE_RUNTIME_BOUNDARY.md) — the S26 Ultra is the physical ARM64 Android execution host, not ONNX Runtime. Inference runtimes are optional software adapters; GPU/NPU use requires target-device evidence.
+**INFERRED → OBSERVED is forbidden without measured evidence.**
 
-## Kinetic intelligence execution
+## Core doctrine
 
-- [Kinetic Intelligence Retrieval Architecture and Benchmark](docs/KINETIC_INTELLIGENCE_RETRIEVAL_ARCHITECTURE_AND_BENCHMARK_2026-11-05.md)
-- [FreeBuff execution handoff](docs/FREEBUFF_EXECUTION_HANDOFF.md)
-- Run the reproducible suite: `python3 scripts/kinetic_suite.py --profile full`
-- Core native tests and microbenchmarks: `python3 scripts/kinetic_suite.py --profile core`
+> "Many specialized models, one merged intelligence. Merging happens in
+> representations, embeddings, the gate, the substrate, and the decision
+> layer — not in the foundation weights."
 
-The runner records environment, exact commands, output, and blocked integrations under `artifacts/kinetic/`. It does not fabricate retrieval scores or implicitly download models. A completed core run is not full architecture acceptance.
+> "Build the verifier before the thing it verifies."
 
+> "Confidence is cheap. Knowing exactly where certainty ends is much
+> more useful."
 
-## TweenAtom state-carrying contract
+> "MUST NOT execute any merge, training, or inference without the gate."
 
-- [TweenAtom State-Carrying Contract](docs/TWEENATOM_STATE_CARRYING_CONTRACT.md)
-- Rust type: `packages/substrate-native/src/tween_atom.rs`
-- DuckDB schema: `packages/memory-chassis/src/schema_tween_atom.sql`
-- FreeBuff execution: `python3 scripts/kinetic_suite.py --profile full`
+---
 
-TweenAtom is a typed, versioned, provenance-bearing state-transition envelope. The compact 53-token intent is one field, not the complete state. AVA-007 retains authority; Exoskeleton implements runtime mechanics and validates evidence.
+*Exoskeleton Manifesto Collection · Memory / Doctrinal Verification Engine Gate*

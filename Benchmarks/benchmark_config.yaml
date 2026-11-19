@@ -1,0 +1,212 @@
+# ============================================================================
+# Exoskeleton/Benchmarks/benchmark_config.yaml
+# ============================================================================
+# Empirical Gate Configuration
+#
+# Every claim about the 64-layer hybrid configuration must pass through
+# these thresholds before graduating from INFERRED to OBSERVED.
+#
+# "If a value is simply a starting point, do not dress it up as a rule.
+#  Confidence is cheap. Knowing exactly where certainty ends is much
+#  more useful."
+#
+# "MUST NOT present tier behavioral claims as OBSERVED until benchmarked."
+# ============================================================================
+
+meta:
+  name: "64-Layer Gated DeltaNet / Attention Hybrid"
+  config_id: "cybernetic-ava-007"
+  merge_method: "della_linear"
+  quarantine_status: "ORANGE_BAND"
+  doctrinal_status: "REJECTED_AT_GATE"
+  rejection_reasons:
+    - "DENY_RULE: Weight merge attempted before symbolic gate verification"
+    - "EPISTEMIC_VIOLATION: 'Best curation filter' is INFERRED, not OBSERVED"
+    - "ARCHITECTURAL_DRIFT: Foundation weight merge contradicts Five Levels doctrine"
+
+# ── Baselines (required to evaluate "best") ────────────────────────────────
+# "Best" is meaningless without comparison. These are the baselines.
+baselines:
+  - name: "single-model-baseline"
+    description: "Unmerged single foundation model (no weight merge)"
+    type: "control"
+    epistemic_state: "OBSERVED"
+  - name: "mergekit-linear"
+    description: "MergeKit linear merge (standard, no della weighting)"
+    type: "comparison"
+    epistemic_state: "OBSERVED"
+  - name: "mergekit-slerp"
+    description: "MergeKit SLERP merge"
+    type: "comparison"
+    epistemic_state: "OBSERVED"
+  - name: "moe-routing-baseline"
+    description: "Mixture-of-Experts routing (merge at decision layer, not weights)"
+    type: "doctrinal-compliant"
+    epistemic_state: "OBSERVED"
+    notes: "This is the doctrinally compliant approach: merge representations and gates, NOT weights"
+
+# ── Benchmark Categories ───────────────────────────────────────────────────
+benchmarks:
+  latency:
+    description: "End-to-end inference latency"
+    unit: "ms"
+    metrics:
+      - name: "p50_latency_ms"
+        threshold: "measured"
+        epistemic_target: "OBSERVED"
+        requires: [">=1000_samples", "warmup=100"]
+      - name: "p99_latency_ms"
+        threshold: "measured"
+        epistemic_target: "OBSERVED"
+        requires: [">=1000_samples"]
+      - name: "first_token_latency_ms"
+        threshold: "measured"
+        epistemic_target: "OBSERVED"
+        requires: [">=500_samples"]
+      - name: "streaming_throughput_tokens_per_sec"
+        threshold: "measured"
+        epistemic_target: "OBSERVED"
+        requires: [">=500_samples"]
+
+  token_cost:
+    description: "Token efficiency and cost"
+    unit: "tokens"
+    metrics:
+      - name: "tokens_per_response_mean"
+        threshold: "measured"
+        epistemic_target: "OBSERVED"
+      - name: "token_cost_reduction_pct"
+        threshold: "measured_against_baseline"
+        epistemic_target: "OBSERVED"
+        requires: ["baseline_comparison"]
+        note: "Cannot claim 'reduction' without measuring the baseline"
+      - name: "vocabulary_coverage_pct"
+        threshold: "measured"
+        epistemic_target: "OBSERVED"
+
+  perplexity:
+    description: "Language modeling quality"
+    unit: "nats"
+    metrics:
+      - name: "perplexity_wikitext"
+        threshold: "measured"
+        epistemic_target: "OBSERVED"
+        requires: ["wikitext-103_test", "deterministic_seed"]
+      - name: "perplexity_domain"
+        threshold: "measured"
+        epistemic_target: "OBSERVED"
+        requires: ["domain_corpus", "gold_labels"]
+      - name: "perplexity_delta_vs_baseline"
+        threshold: "measured_against_baseline"
+        epistemic_target: "OBSERVED"
+        requires: ["baseline_comparison"]
+
+  epistemic_drift:
+    description: "Self-confirmation and calibration detection"
+    unit: "score"
+    metrics:
+      - name: "self_confirmation_rate"
+        threshold: "<=0.05"
+        epistemic_target: "OBSERVED"
+        requires: ["foil_tests", ">=200_probes"]
+        note: "Rate at which model treats its own generation as external confirmation"
+      - name: "calibration_ece"
+        threshold: "<=0.10"
+        epistemic_target: "OBSERVED"
+        requires: ["confidence_calibration_test", ">=500_samples"]
+        note: "Expected Calibration Error — does the model know what it doesn't know?"
+      - name: "hallucination_rate"
+        threshold: "<=0.02"
+        epistemic_target: "OBSERVED"
+        requires: ["factual_grounding_test", ">=500_samples"]
+      - name: "inferred_to_observed_promotion_rate"
+        threshold: "=0.0"
+        epistemic_target: "OBSERVED"
+        requires: ["foil_tests"]
+        note: "ZERO TOLERANCE. Any INFERRED→OBSERVED promotion is a doctrinal violation."
+      - name: "pairwise_disagreement_l2"
+        threshold: "measured"
+        epistemic_target: "OBSERVED"
+        requires: ["kice", "vector_curation_engine", ">=2_contributors"]
+        note: "KICE / Vector Curation Engine: L2 disagreement across contributors. Audits convergence vs forced consensus."
+      - name: "weakest_contributor_penalty"
+        threshold: "measured"
+        epistemic_target: "OBSERVED"
+        requires: ["kice", "vector_curation_engine", ">=2_contributors"]
+        note: "Penalty applied to the weakest contributor in a multi-contributor output. Prevents silent consensus collapse."
+
+  tier_behavioral:
+    description: "Compute budget allocation across tiers"
+    unit: "%"
+    metrics:
+      - name: "tier1_compute_pct"
+        threshold: "<=0.01"
+        epistemic_target: "INFERRED"
+        requires: ["profiler_measurement_under_load"]
+        current_status: "UNBENCHMARKED"
+        note: "≤1% compute for Tier 1 (sensory edge). ARCHITECTURAL TARGET."
+      - name: "tier2_compute_pct"
+        threshold: "<=0.50"
+        epistemic_target: "INFERRED"
+        requires: ["profiler_measurement_under_load"]
+        current_status: "UNBENCHMARKED"
+        note: "≤50% compute for Tier 2 (subconscious metabolism)"
+      - name: "tier3_compute_pct"
+        threshold: ">=0.49"
+        epistemic_target: "INFERRED"
+        requires: ["profiler_measurement_under_load"]
+        current_status: "UNBENCHMARKED"
+        note: "≥49% compute for Tier 3 (recursive core) when Tier 2 (subconscious metabolism, ≤50%) is active: 99% total budget = ≤50% Tier 2 + ≥49% Tier 3, with Tier 1 (peripheral ingestion) capped at ≤1% (Ava-007 Manifesto Stanza IV)."
+      - name: "tier3_vs_edge_pct"
+        threshold: ">=0.99"
+        epistemic_target: "INFERRED"
+        requires: ["profiler_measurement_under_load"]
+        current_status: "UNBENCHMARKED"
+        note: "Recursive core vs peripheral ingestion alone (no Tier 2): 99% budget per Ava-007 Manifesto Stanza IV. Architectural target, not measured."
+
+  architecture:
+    description: "Structural properties of the hybrid"
+    unit: "varies"
+    metrics:
+      - name: "modulo4_attention_layer_count"
+        threshold: "=16"
+        epistemic_target: "DERIVED"
+        requires: ["architecture_inspection"]
+        note: "64 layers / 4 = 16 attention layers at indices 3, 7, 11, ..., 63"
+      - name: "linear_recurrent_layer_count"
+        threshold: "=48"
+        epistemic_target: "DERIVED"
+        requires: ["architecture_inspection"]
+      - name: "context_window_tokens"
+        threshold: "measured"
+        epistemic_target: "OBSERVED"
+      - name: "state_size_per_layer"
+        threshold: "measured"
+        epistemic_target: "OBSERVED"
+
+# ── Graduation Rules ──────────────────────────────────────────────────────
+graduation:
+  rules:
+    - rule: "OBSERVED requires measured evidence from >=1000 samples (or >=500 for latency)"
+    - rule: "DERIVED requires computed evidence from measured values"
+    - rule: "INFERRED claims must remain INFERRED until profiler/benchmark confirms"
+    - rule: "HYPOTHESIZED claims cannot appear in any published output"
+    - rule: "'Best' claims require ALL baselines measured and outperformed"
+    - rule: "Any foil test failure blocks graduation of ALL related claims"
+  zero_tolerance:
+    - "INFERRED→OBSERVED promotion without evidence"
+    - "Weight merge before symbolic gate verification"
+    - "Self-confirmation (model treating own output as ground truth)"
+    - "Presenting architectural targets as measured facts"
+
+# ── Foil Test Configuration ───────────────────────────────────────────────
+foil_tests:
+  description: "Adversarial tests that attempt to trick the epistemic gate"
+  count: 200
+  categories:
+    - "self_confirmation"
+    - "illegal_promotion"
+    - "negation_contradiction"
+    - "confidence_overstatement"
+    - "weight_merge_bypass"
+    - "tier_budget_leakage"

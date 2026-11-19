@@ -1,0 +1,93 @@
+# ============================================================================
+# Exoskeleton/Benchmarks/quarantine/cybernetic-ava-007.yaml
+# ============================================================================
+# QUARANTINE: Orange Band (P_prov)
+#
+# STATUS: REJECTED AT THE EPISTEMIC GATE
+#
+# DENY RULE TRIGGERED:
+#   - MUST NOT execute any merge, training, or inference without the gate
+#   - MUST NOT present tier behavioral claims as OBSERVED until benchmarked
+#
+# EPISTEMIC VIOLATION:
+#   - "Best curation filter" is INFERRED / HYPOTHESIZED, not OBSERVED
+#
+# ARCHITECTURAL DRIFT:
+#   - Foundation weight merge contradicts the Five Levels of Merging doctrine
+#   - "Merge representations and gates, NOT weights"
+#
+# REQUIRED PATH FORWARD:
+#   1. Deploy the 3-Tier Stanza symbolic gate (Option 1) FIRST
+#   2. Benchmark against ALL baselines
+#   3. Only then evaluate graduation
+#
+# This file is PROVISIONAL. It is a hypothesis in the Orange Band.
+# It is NOT approved. It is NOT executable. It is a thought experiment
+# that must pass through the empirical gate before any action is taken.
+# ============================================================================
+
+meta:
+  config_id: "cybernetic-ava-007"
+  status: "QUARANTINED_ORANGE_BAND"
+  quarantined_at: "2026-11-17"
+  quarantined_by: "Doctrinal Verification Engine"
+  merge_method: "della_linear"
+  framework: "arcee-ai/mergekit"
+
+rejection:
+  deny_rules_triggered:
+    - "MUST NOT execute any merge, training, or inference without the gate"
+    - "MUST NOT present tier behavioral claims as OBSERVED until benchmarked"
+  epistemic_violations:
+    - "'Best curation filter' is INFERRED/HYPOTHESIZED, not OBSERVED"
+    - "No comparative benchmark data exists"
+  architectural_violations:
+    - "Foundation weight merge contradicts Five Levels doctrine"
+    - "Merging at Level 1 (weights) forfeits modular isolation"
+    - "Must merge at representations, embeddings, gate, substrate, decision layer"
+
+# ── The Merge Recipe (HYPOTHESIZED — NOT APPROVED) ────────────────────────
+# This is what was proposed. It is NOT what should be executed.
+merge_recipe:
+  method: "della_linear"
+  models:
+    - name: "model-a"
+      weight: 0.4
+    - name: "model-b"
+      weight: 0.35
+    - name: "model-c"
+      weight: 0.25
+  parameters:
+    normalize: true
+    int8_mask: false
+
+# ── Architecture Hypothesis (has theoretical backing) ─────────────────────
+architecture_hypothesis:
+  description: "64-layer Gated DeltaNet / attention hybrid"
+  total_layers: 64
+  interleaving: "modulo-4"
+  attention_layer_indices: [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59, 63]
+  attention_layer_count: 16
+  linear_recurrent_layer_count: 48
+  recurrence_type: "Gated DeltaNet"
+  attention_type: "full softmax"
+  context_anchor: "attention layers at 3, 7, 11, ..., 63 provide global context"
+  theoretical_support:
+    - "Breaking Quadratic Barriers (Non-Attention LLM)"
+    - "One Stream"
+    - "HE2-Net hierarchical exploration-exploitation"
+
+# ── What the Sources DO Support ───────────────────────────────────────────
+sources_support:
+  - "Interleaved recurrence and attention is theoretically sound"
+  - "Headless sensing + selective coupling via Cognitive Coupling Gate"
+  - "Modulo-4 interleaving preserves global context anchoring"
+  - "Linear O(N) complexity for recurrent layers"
+
+# ── What the Sources REJECT ───────────────────────────────────────────────
+sources_reject:
+  - "Weight-level merging (Level 1 must remain separate)"
+  - "'Best curation filter' superlative without benchmarks"
+  - "Executing merge before symbolic gate verification"
+  - "Presenting architectural targets as measured facts"
+  - "Shifting 99%/1% ratio to 98%/2% without justification"

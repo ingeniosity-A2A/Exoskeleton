@@ -1,0 +1,88 @@
+# ============================================================================
+# Exoskeleton/sandbox/docker-compose.yaml
+# ============================================================================
+# Kiri Compose — Exoskeleton Sandbox
+#
+# One container. Everything inside. OpenCode execs into it.
+#
+# Usage:
+#   kiri compose -f sandbox/docker-compose.yaml up -d
+#   make -C sandbox opencode        # Drop into the sandbox as OpenCode
+#   make -C sandbox run CMD="make kice-foil"
+#   make -C sandbox run CMD="make kice-benchmark"
+#   make -C sandbox down
+#
+# From the host:
+#   http://sandbox.exoskeleton.kiri.localhost  — sandbox health
+# ============================================================================
+
+services:
+  exoskeleton-sandbox:
+    build:
+      context: ..
+      dockerfile: sandbox/Dockerfile
+    container_name: exoskeleton-sandbox
+    hostname: exoskeleton-sandbox
+    restart: unless-stopped
+    networks:
+      - exoskeleton
+    labels:
+      dev.kiri.domain: sandbox.exoskeleton
+    ports:
+      - "9099:9099"      # Health / status endpoint
+    environment:
+      # ── Identity ─────────────────────────────────────────────────────
+      SANDBOX_NAME: "exoskeleton-sandbox"
+      SANDBOX_MODE: "opencode"
+      NODE_NAME: "The_Beeper"
+      # ── GitHub CLI headless ──────────────────────────────────────────
+      GH_TOKEN: "${GH_TOKEN:-}"
+      GH_PROMPT_DISABLED: "true"
+      GH_NO_UPDATE_NOTIFIER: "true"
+      NO_COLOR: "1"
+      GIT_TERMINAL_PROMPT: "0"
+      # ── KICE ─────────────────────────────────────────────────────────
+      KICE_CONFIG: "/opt/exoskeleton/KICE/kice_config.yaml"
+      KICE_MODE: "autonomous"
+      # ── Benchmark ────────────────────────────────────────────────────
+      BENCHMARK_CONFIG: "/opt/exoskeleton/Benchmarks/benchmark_config.yaml"
+      # ── Compute budget ───────────────────────────────────────────────
+      TIER1_MAX_PCT: "0.01"
+      TIER2_MAX_PCT: "0.50"
+      TIER3_MIN_PCT: "0.49"
+      # ── Paths ────────────────────────────────────────────────────────
+      EXOSKELETON_ROOT: "/opt/exoskeleton"
+      PYTHONPATH: "/opt/exoskeleton/KICE:/opt/exoskeleton/Benchmarks:/opt/exoskeleton/Dependencies"
+    volumes:
+      - ../KICE:/opt/exoskeleton/KICE
+      - ../Benchmarks:/opt/exoskeleton/Benchmarks
+      - ../Dependencies:/opt/exoskeleton/Dependencies
+      - ../Sensory:/opt/exoskeleton/Sensory
+      - ../A2A-Networks:/opt/exoskeleton/A2A-Networks
+      - ../Memory:/opt/exoskeleton/Memory
+      - ../Exoskeleton-Manifesto-Collection:/opt/exoskeleton/Exoskeleton-Manifesto-Collection
+      - sandbox_data:/opt/exoskeleton/data
+      - sandbox_logs:/opt/exoskeleton/logs
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9099/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "4.0"
+    stdin_open: true
+    tty: true
+
+networks:
+  exoskeleton:
+    driver: bridge
+
+volumes:
+  sandbox_data:
+    driver: local
+  sandbox_logs:
+    driver: local
